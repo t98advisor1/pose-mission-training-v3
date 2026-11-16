@@ -16,7 +16,7 @@
         thumb_up: { emoji: "👍", desc: "엄지를 번쩍 들어 최고를 표현하세요!" },
         flower: { emoji: "🌻", desc: "사진처럼 손바닥을 펼쳐 볼 양옆에! 손목은 어깨보다 조금 위로 올려요." },
         hero: { emoji: "🦸‍♂️", desc: "한 손은 하늘 높이 뻗고, 반대 손은 듬직하게 허리에 얹으세요!" },
-        dab: { emoji: "🕺", desc: "한 팔을 대각선으로 뻗고, 얼굴은 반대 팔꿈치에 살짝 묻으세요!" },
+        dab: { emoji: "👉", desc: "몸을 45도 옆으로 틀고 양팔을 사선으로 쭉! 두 손은 검지를 펴고 엄지를 세운 권총 모양, 한쪽 무릎은 ㄱ자로 들어요!" },
         body_bonus: { emoji: "⭐", desc: "팔·다리를 활짝! 아무 자세나 2초 유지하면 성공! 관절이 많이 보이고 동작이 클수록 점수가 높아요." }
     };
 
@@ -568,32 +568,46 @@
         ];
 
         ctx.save();
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = isMatched ? "#22c55e" : "#38bdf8";
-        ctx.fillStyle = isMatched ? "#4ade80" : "#0284c7";
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        const mainColor = isMatched ? "#16a34a" : "#0ea5e9";
+        const jointColor = isMatched ? "#bbf7d0" : "#fde047";
 
-        CONNECTIONS.forEach(([i, j]) => {
-            const p1 = landmarks[i];
-            const p2 = landmarks[j];
-            if (pointValid(p1) && pointValid(p2)) {
-                const c1 = normToCanvas(p1);
-                const c2 = normToCanvas(p2);
-                ctx.beginPath();
-                ctx.moveTo(c1.x, c1.y);
-                ctx.lineTo(c2.x, c2.y);
-                ctx.stroke();
-            }
-        });
+        // 관절 가시성 보완: 어두운 바깥선 + 흰 테두리 + 밝은 연결선 (표시만 변경, 인식·점수 판정은 그대로)
+        const drawLines = (width, color) => {
+            ctx.lineWidth = width;
+            ctx.strokeStyle = color;
+            CONNECTIONS.forEach(([i, j]) => {
+                const p1 = landmarks[i];
+                const p2 = landmarks[j];
+                if (pointValid(p1) && pointValid(p2)) {
+                    const c1 = normToCanvas(p1);
+                    const c2 = normToCanvas(p2);
+                    ctx.beginPath();
+                    ctx.moveTo(c1.x, c1.y);
+                    ctx.lineTo(c2.x, c2.y);
+                    ctx.stroke();
+                }
+            });
+        };
+        drawLines(11, "rgba(15,23,42,0.75)");
+        drawLines(8, "#ffffff");
+        drawLines(5, mainColor);
 
         BODY_BONUS_POINTS.forEach(idx => {
             const pt = landmarks[idx];
             if (pointValid(pt)) {
                 const c = normToCanvas(pt);
                 ctx.beginPath();
-                ctx.arc(c.x, c.y, 5, 0, Math.PI * 2);
+                ctx.arc(c.x, c.y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(15,23,42,0.8)";
                 ctx.fill();
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 7, 0, Math.PI * 2);
+                ctx.fillStyle = jointColor;
+                ctx.fill();
+                ctx.lineWidth = 2.5;
                 ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 1.5;
                 ctx.stroke();
             }
         });

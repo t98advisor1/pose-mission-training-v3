@@ -1,6 +1,8 @@
 /* 페스타 전용: 운영자 로그인(행사 기기만 업로드·랭킹 기록 권한) + 선택 사진 20분 QR 수령 */
 (function () {
-    const W = "https://pose-photo-pickup-test.indosupervisor0126.workers.dev";
+    const W = "https://pose-photo-pickup-v3.indosupervisor0126.workers.dev";
+    // 운영자 로그인(랭킹 기록 권한 발급)은 기존 워커를 그대로 사용 - 비밀값을 새 워커로 옮기지 않기 위함
+    const LOGIN_W = "https://pose-photo-pickup-test.indosupervisor0126.workers.dev";
     const KEY = "FESTA_OP_TOKEN";
     const MAX_BYTES = 3800000;
     const token = () => { try { const t = sessionStorage.getItem(KEY) || ""; return Number(t.split(".")[0]) > Date.now() / 1000 ? t : ""; } catch (e) { return ""; } };
@@ -9,18 +11,32 @@
     function $(id) { return document.getElementById(id); }
     function refreshOpUI() {
         const on = !!token();
-        if ($("op-state")) $("op-state").textContent = on ? "운영자 로그인됨 (이 기기만, 최대 6시간)" : "로그인 전: 점수 기록과 QR 사진 전송은 꺼져 있어요";
+        if ($("op-state")) $("op-state").textContent = on ? "운영자 로그인됨 (이 기기만, 최대 6시간)" : "로그인 전: 점수 기록은 꺼져 있어요 (사진 QR은 로그인 없이 가능)";
         if ($("op-logout")) $("op-logout").style.display = on ? "inline-block" : "none";
         if ($("op-login")) $("op-login").style.display = on ? "none" : "inline-block";
         if ($("op-pin")) $("op-pin").style.display = on ? "none" : "inline-block";
-        const q = $("shots-qr-btn"); if (q) { q.disabled = !on; q.style.opacity = on ? 1 : .5; }
-        const n = $("shots-qr-note"); if (n) n.textContent = on ? "" : "QR 수령은 행사 진행자가 이 기기에서 로그인한 뒤에만 쓸 수 있어요. 지금은 '선택한 사진 저장'만 가능해요.";
+        updateQrState();
     }
+    function missing() {
+        const m = [];
+        if (!(window.getPickedShots ? window.getPickedShots() : []).length) m.push("사진을 한 장 이상 고르세요");
+        const c = $("shots-consent"); if (!c || !c.checked) m.push("20분 임시 저장 안내에 체크하세요");
+        return m;
+    }
+    function updateQrState() {
+        const q = $("shots-qr-btn"), n = $("shots-qr-note"); if (!q || !n) return;
+        const m = missing(), ok = !m.length;
+        q.style.background = ok ? "#7c3aed" : "#9ca3af";
+        n.style.cssText = "margin:6px 0 0;font-size:1rem;font-weight:700;color:" + (ok ? "#166534" : "#b91c1c");
+        n.textContent = ok ? "준비됐어요. 눌러서 QR을 만드세요." : "QR을 만들려면: " + m.join(" / ");
+    }
+    document.addEventListener("change", () => setTimeout(updateQrState, 0));
+    document.addEventListener("click", () => setTimeout(updateQrState, 0));
     async function login() {
         const pin = $("op-pin").value; $("op-pin").value = "";
         $("op-msg").textContent = "확인 중...";
         try {
-            const r = await fetch(W + "/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin }) });
+            const r = await fetch(LOGIN_W + "/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin }) });
             if (r.status === 429) { $("op-msg").textContent = "요청이 많아요. 잠시 후 다시 시도해 주세요."; return; }
             if (!r.ok) { $("op-msg").textContent = "비밀번호가 맞지 않아요."; return; }
             sessionStorage.setItem(KEY, (await r.json()).token);
@@ -33,13 +49,12 @@
     const blobToDataUrl = b => new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(f.result); f.onerror = rej; f.readAsDataURL(b); });
 
     let qrLoaded = null;
-    function loadQr() { return qrLoaded || (qrLoaded = new Promise((res, rej) => { const s = document.createElement("script"); s.src = W + "/qr.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); })); }
+    function loadQr() { return qrLoaded || (qrLoaded = new Promise((res, rej) => { const s = document.createElement("script"); s.src = "qr.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); })); }
 
     async function sendQr() {
         const msg = $("shots-msg"), area = $("shots-qr-area");
         const picked = window.getPickedShots ? window.getPickedShots() : [];
-        if (!token()) { msg.textContent = "운영자 로그인 후 사용할 수 있어요."; return; }
-        if (!picked.length) { msg.textContent = "받을 사진을 먼저 선택해 주세요."; return; }
+                if (!picked.length) { msg.textContent = "받을 사진을 먼저 선택해 주세요."; return; }
         if (!$("shots-consent").checked) { msg.textContent = "임시 저장 안내를 확인하고 체크해 주세요."; return; }
         msg.textContent = "사진을 보내는 중...";
         try {
@@ -48,14 +63,15 @@
             if (urls.some(u => !u.startsWith("data:image/jpeg;base64,"))) throw new Error("format");
             const body = '{"photos":["' + urls.join('","') + '"]}';
             if (body.length > MAX_BYTES) { msg.textContent = "사진이 너무 커요. 장수를 줄여 다시 선택해 주세요."; return; }
-            const r = await fetch(W + "/api/save", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token() }, body });
-            if (r.status === 401) { logout(); msg.textContent = "로그인이 만료됐어요. 운영자 로그인을 다시 해 주세요."; return; }
+            const r = await fetch(W + "/api/save", { method: "POST", headers: { "Content-Type": "application/json", ...(token() ? { "Authorization": "Bearer " + token() } : {}) }, body });
+            if (r.status === 429) { msg.textContent = "지금 사용자가 많아요. 잠시 뒤 다시 눌러 주세요."; return; }
             if (!r.ok) { msg.textContent = "서버에 임시 저장하지 못했어요. 대신 '선택한 사진 저장'으로 이 기기에 저장해 주세요."; return; }
             const j = await r.json();
             await loadQr();
             const q = qrcode(0, "M"); q.addData(j.url); q.make();
             area.innerHTML = '<div style="background:#fff;padding:8px;border-radius:10px;display:inline-block">' + q.createSvgTag(5) + '</div>';
             const p = document.createElement("p"); p.style.cssText = "font-size:.8rem;margin:6px 0 0;word-break:break-all"; p.textContent = "휴대폰 카메라로 QR을 찍으세요. " + (j.minutes || 20) + "분 동안만 받을 수 있어요."; area.appendChild(p);
+            { const nn = $("shots-qr-note"); if (nn) { nn.style.color = "#166534"; nn.textContent = "QR이 만들어졌어요. 아래 QR을 휴대폰 카메라로 찍어 주세요."; } }
             msg.textContent = picked.length + "장을 서버에 임시 저장했어요. 휴대폰에서 다운로드 페이지가 열리는지, 갤러리에 저장됐는지는 직접 확인해 주세요.";
         } catch (e) { msg.textContent = "보내지 못했어요. 대신 '선택한 사진 저장'으로 이 기기에 저장해 주세요."; }
     }

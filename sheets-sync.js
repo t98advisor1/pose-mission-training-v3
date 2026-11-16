@@ -19,7 +19,7 @@
     ];
     const BODY_GRADES = [100, 200, 300, 400, 500, 600, 700];
     const BODY_MISSIONS = BODY_GRADES.map(score => `전신 보너스 ${score}`);
-    const displayMission = mission => mission === "꽃받침" ? "양손 꽃피우기" : mission;
+    const displayMission = mission => mission === "꽃받침" ? "양손 꽃피우기" : (mission === "가벼운 댑" ? "양손 권총" : mission);
     const BODY_KEY = "__full_body_bonus__";
     const isBodyMission = mission => BODY_MISSIONS.includes(mission);
     const isValidMission = mission => VALID_MISSIONS.includes(mission) || isBodyMission(mission);
@@ -82,7 +82,7 @@
         return scores;
     }
 
-    const STORAGE_KEY = "POSE_GAME_SYNC_STATE_V2_TEST_ISOLATED";
+    const STORAGE_KEY = "POSE_GAME_SYNC_STATE_V3_FESTA";
     const LEADERBOARD_DELAY_MS = 5000;
     const JSONP_TIMEOUT_MS = 8000;
     const QUEUE_RETRY_INTERVAL_MS = 4000;

@@ -900,12 +900,12 @@ html, body {
                     <button id="practice-home-btn" class="practice-entry home-action" type="button"><span class="action-icon" aria-hidden="true">📷</span><span>연습 모드<small>점수 없이 미리 연습</small></span></button>
                 </div>
 
-                <div class="title-lockup"><img class="title-pose dab" src="photos-dab-v2.png" alt="가벼운 댑 포즈 사진" width="64" height="76"><h1 class="brand-title">온몸으로 찰칵!<small>포즈 챌린지</small></h1><img class="title-pose heart" src="photos-heart-v2.png" alt="머리 위 하트 포즈 사진" width="64" height="76"></div>
+                <div class="title-lockup"><img class="title-pose dab" src="photos-gun-v3.png" alt="양손 권총 포즈 사진" width="64" height="76"><h1 class="brand-title">온몸으로 찰칵!<small>포즈 챌린지</small></h1><img class="title-pose heart" src="photos-heart-v2.png" alt="머리 위 하트 포즈 사진" width="64" height="76"></div>
                 <p class="family-invite">가족과 함께 도전해보세요!!</p>
                 <p class="brand-desc">
                     <strong>7가지 포즈 × 100점</strong> + 전신·깜짝 보너스!
                 </p>
-                <div class="pose-thumbnail-strip" aria-label="도전할 일곱 가지 포즈"><img src="photos-big-v-v2.png" alt="큰 V 예시" title="큰 V" width="120" height="120" decoding="async"><img src="photos-heart-v2.png" alt="머리 위 하트 예시" title="머리 위 하트" width="120" height="120" decoding="async"><img src="photos-victory-v2.png" alt="한손 브이 예시" title="한손 브이" width="120" height="120" decoding="async"><img src="photos-thumb-up-v2.png" alt="엄지척 예시" title="엄지척" width="120" height="120" decoding="async"><img src="photos-flower-v2.png" alt="양손 꽃피우기 예시" title="양손 꽃피우기" width="120" height="120" decoding="async"><img src="photos-hero-v2.png" alt="슈퍼히어로 예시" title="슈퍼히어로" width="120" height="120" decoding="async"><img src="photos-dab-v2.png" alt="가벼운 댑 예시" title="가벼운 댑" width="120" height="120" decoding="async"></div>
+                <div class="pose-thumbnail-strip" aria-label="도전할 일곱 가지 포즈"><img src="photos-big-v-v2.png" alt="큰 V 예시" title="큰 V" width="120" height="120" decoding="async"><img src="photos-heart-v2.png" alt="머리 위 하트 예시" title="머리 위 하트" width="120" height="120" decoding="async"><img src="photos-victory-v2.png" alt="한손 브이 예시" title="한손 브이" width="120" height="120" decoding="async"><img src="photos-thumb-up-v2.png" alt="엄지척 예시" title="엄지척" width="120" height="120" decoding="async"><img src="photos-flower-v2.png" alt="양손 꽃피우기 예시" title="양손 꽃피우기" width="120" height="120" decoding="async"><img src="photos-hero-v2.png" alt="슈퍼히어로 예시" title="슈퍼히어로" width="120" height="120" decoding="async"><img src="photos-gun-v3.png" alt="양손 권총 예시" title="양손 권총" width="120" height="120" decoding="async"></div>
                 <p class="gallery-caption">옆으로 넘겨 포즈 보기 ↔ · 자세한 안내는 설명서에서!</p>
                 <div class="gallery-nav"><button id="gallery-prev" type="button" aria-label="이전 포즈 사진">←</button><span id="gallery-position" aria-live="polite">1 / 7 · 큰 V</span><button id="gallery-next" type="button" aria-label="다음 포즈 사진">→</button></div>
                 <div class="start-entry-form">
@@ -945,7 +945,7 @@ html, body {
                 <div id="pose-title" class="pose-brief-title">큰 V 🙆‍♂️</div>
                 <div id="pose-desc" class="pose-brief-desc">두 팔을 머리 위로 시원하게 뻗어 V자를 만드세요!</div>
             </div>
-            <div id="practice-controls" hidden><select id="practice-pose-select" aria-label="연습할 포즈"><option value="big_v">큰 V</option><option value="heart">머리 위 하트</option><option value="victory">한손 브이</option><option value="thumb_up">엄지척</option><option value="flower">양손 꽃피우기</option><option value="hero">슈퍼히어로</option><option value="dab">가벼운 댑</option><option value="body_bonus">전신 보너스</option></select><button id="practice-guide-btn" type="button">📖 안내 보기</button></div>
+            <div id="practice-controls" hidden><select id="practice-pose-select" aria-label="연습할 포즈"><option value="big_v">큰 V</option><option value="heart">머리 위 하트</option><option value="victory">한손 브이</option><option value="thumb_up">엄지척</option><option value="flower">양손 꽃피우기</option><option value="hero">슈퍼히어로</option><option value="dab">양손 권총</option><option value="body_bonus">전신 보너스</option></select><button id="practice-guide-btn" type="button">📖 안내 보기</button></div>
         </div>
 
         <!-- 중앙 비전 뷰포트 (카메라 + 캔버스 오버레이 + 2초 예고) -->
@@ -1089,7 +1089,7 @@ const poses = [
     { id: "thumb_up", name: "엄지척", src: "photos-thumb-up-v2.png", type: "gesture", gesture: "Thumb_Up" },
     { id: "flower", name: "양손 꽃피우기", mission: "꽃받침", src: "photos-flower-v2.png", type: "hybrid" },
     { id: "hero", name: "슈퍼히어로", src: "photos-hero-v2.png", type: "pose" },
-    { id: "dab", name: "가벼운 댑", src: "photos-dab-v2.png", type: "pose" },
+    { id: "dab", name: "양손 권총", mission: "가벼운 댑", src: "photos-gun-v3.png", type: "hybrid" },
     { id: "body_bonus", name: "전신 보너스", type: "bonus" }
 ];
 
@@ -1313,8 +1313,55 @@ function checkGestureMatches(targetGestureName, gestureResults) {
     return false;
 }
 
-// 5. 7대 포즈 종합 판별 (큰 V, 머리 위 하트, 꽃받침, 슈퍼히어로, 가벼운 댑)
+// 5. 7대 포즈 종합 판별 (큰 V, 머리 위 하트, 꽃받침, 슈퍼히어로, 양손 권총)
+// 양손 권총(한발 들기): 랭킹 열 이름은 기존 "가벼운 댑"을 그대로 사용(표시 이름만 변경)
+// 양손 권총(한발 들기) 판정: 몸(PoseLandmarker) + 손 21점(GestureRecognizer) 기하. 좌우 대칭, 몸 틀어도 가능.
+function gunHandOk(h) {
+    if (!h || h.length < 21) return false;
+    const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const palm = d(h[0], h[5]);
+    if (palm < 0.015) return false;
+    const indexOut = d(h[0], h[8]) > palm * 1.6;
+    const mid = d(h[0], h[12]) < palm * 1.45;
+    const ring = d(h[0], h[16]) < palm * 1.4;
+    const pinky = d(h[0], h[20]) < palm * 1.35;
+    const thumbOut = d(h[4], h[9]) > palm * 0.55;
+    return indexOut && mid && ring && pinky && thumbOut;
+}
+function checkFingerGun(lm, gestureResults) {
+    const P = i => lm[i];
+    const need = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+    for (const i of need) { const p = P(i); if (!p || !(p.x >= -0.2 && p.x <= 1.2 && p.y >= -0.2 && p.y <= 1.2) || (p.visibility !== undefined && p.visibility < 0.4)) return false; }
+    const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const shY = (P(11).y + P(12).y) / 2, hipY = (P(23).y + P(24).y) / 2;
+    const torso = hipY - shY;
+    if (torso < 0.08) return false;
+    // 1) 한쪽 무릎을 들고 발도 들림, 반대 다리는 딛고 있음
+    const kL = P(25), kR = P(26), aL = P(27), aR = P(28);
+    const lowK = kL.y > kR.y ? kL : kR, highK = kL.y > kR.y ? kR : kL;
+    const lowA = aL.y > aR.y ? aL : aR, highA = aL.y > aR.y ? aR : aL;
+    const thigh = lowK.y - hipY;
+    if (thigh < 0.08) return false;
+    const kneeUp = highK.y < hipY + thigh * 0.5;
+    const footUp = lowA.y - highA.y > thigh * 0.5;
+    if (!kneeUp || !footUp) return false;
+    // 2) 양팔을 앞/사선으로 곧게 뻗음 (어깨 폭이 아닌 몸통 길이로 비교해 몸을 틀어도 통과)
+    const ang = (a, b, c) => { const v1 = {x: a.x - b.x, y: a.y - b.y}, v2 = {x: c.x - b.x, y: c.y - b.y}; const m = Math.hypot(v1.x, v1.y) * Math.hypot(v2.x, v2.y); if (!m) return 0; return Math.acos(Math.max(-1, Math.min(1, (v1.x * v2.x + v1.y * v2.y) / m))) * 180 / Math.PI; };
+    const armL = ang(P(11), P(13), P(15)) >= 120 && d(P(11), P(15)) >= torso * 0.55;
+    const armR = ang(P(12), P(14), P(16)) >= 120 && d(P(12), P(16)) >= torso * 0.55;
+    if (!armL || !armR) return false;
+    if (P(15).y > hipY || P(16).y > hipY) return false;
+    // 3) 양손 모두 권총 모양이고 각 손이 몸의 손목과 가까운 손일 것
+    if (!gestureResults || !gestureResults.landmarks || gestureResults.landmarks.length < 2) return false;
+    const hands = gestureResults.landmarks.filter(gunHandOk);
+    const near = w => hands.some(h => d(h[0], w) < Math.max(0.1, torso * 0.45));
+    const usedA = hands.filter(h => d(h[0], P(15)) < Math.max(0.1, torso * 0.45));
+    const usedB = hands.filter(h => d(h[0], P(16)) < Math.max(0.1, torso * 0.45));
+    return usedA.length > 0 && usedB.length > 0 && !(usedA.length === 1 && usedB.length === 1 && usedA[0] === usedB[0]);
+}
+
 function checkPoseMatches(targetId, lm, gestureResults) {
+    if (targetId === "dab") return checkFingerGun(lm, gestureResults);
     const nose = lm[0];
     const lSh = lm[11], rSh = lm[12];
     const lEl = lm[13], rEl = lm[14];
@@ -1418,16 +1465,6 @@ function checkPoseMatches(targetId, lm, gestureResults) {
             const isLeftHandOnWaist = Math.abs(lWr.y - hipY) < 0.22 && Math.abs(lWr.x - lSh.x) < shoulderWidth * 0.95;
 
             return (isLeftArmRaised && isRightHandOnWaist) || (isRightArmRaised && isLeftHandOnWaist);
-        }
-
-        case "dab": {
-            const leftStraight = Math.abs(lWr.x - lSh.x) > shoulderWidth * 0.7 && lWr.y < shoulderY && leftElbowAngle >= 125;
-            const rightFoldedFace = Math.abs(rWr.x - nose.x) < shoulderWidth * 0.65 && Math.abs(rWr.y - nose.y) < 0.22 && rightElbowAngle <= 100;
-
-            const rightStraight = Math.abs(rWr.x - rSh.x) > shoulderWidth * 0.7 && rWr.y < shoulderY && rightElbowAngle >= 125;
-            const leftFoldedFace = Math.abs(lWr.x - nose.x) < shoulderWidth * 0.65 && Math.abs(lWr.y - nose.y) < 0.22 && leftElbowAngle <= 100;
-
-            return (leftStraight && rightFoldedFace) || (rightStraight && leftFoldedFace);
         }
 
         default:
