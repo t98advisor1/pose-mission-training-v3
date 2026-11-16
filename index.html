@@ -1271,8 +1271,8 @@ function isValidHandLandmarks(handPoints) {
 
 // 3. 실제 픽셀 종횡비(videoWidth, videoHeight)를 반영한 2D 각도 계산 (B가 꼭짓점)
 function calculateAngle(A, B, C) {
-    const w = (webcam && webcam.videoWidth) ? webcam.videoWidth : 640;
-    const h = (webcam && webcam.videoHeight) ? webcam.videoHeight : 480;
+    const w = (window.__camLogical && window.__camLogical.w) || ((webcam && webcam.videoWidth) ? webcam.videoWidth : 640);
+    const h = (window.__camLogical && window.__camLogical.h) || ((webcam && webcam.videoHeight) ? webcam.videoHeight : 480);
 
     const v1x = (A.x - B.x) * w;
     const v1y = (A.y - B.y) * h;
@@ -1441,7 +1441,7 @@ function checkPoseMatches(targetId, lm, gestureResults) {
             }
 
             // 4) 각 손의 손목0번이 서로 다른 Pose 손목(15번, 16번)과 근접한지 검사
-            const pixelDistance = (a, b) => Math.hypot((a.x - b.x) * (webcam.videoWidth || 640), (a.y - b.y) * (webcam.videoHeight || 480));
+            const pixelDistance = (a, b) => Math.hypot((a.x - b.x) * ((window.__camLogical && window.__camLogical.w) || webcam.videoWidth || 640), (a.y - b.y) * ((window.__camLogical && window.__camLogical.h) || webcam.videoHeight || 480));
             const maxWristDist = pixelDistance(lSh, rSh) * 0.7;
             const distAtoL = pixelDistance(handA, lWr);
             const distBtoR = pixelDistance(handB, rWr);
@@ -1699,7 +1699,7 @@ window.addEventListener('mediapipe-ready', () => {
     initAIModels();
 });
 </script>
-<script src="./experience.js?v=20261113-fe1"></script>
+<script src="./experience.js?v=20261116-crop1"></script>
 <script src="./festa.js?v=20261113-fe1"></script>
 <script src="./guide.js?v=20261009-37"></script>
 </body>

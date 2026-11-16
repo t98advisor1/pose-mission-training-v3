@@ -17,9 +17,10 @@ function augmentHandsForGun(video, lm, results, now) {
         var base = results && results.landmarks ? results.landmarks : [];
         if (base.length >= 2) return results;
         __ensureCropRec();
-        if (!__cropRec || !video.videoWidth) return results;
+        var srcW = video.videoWidth || video.width, srcH = video.videoHeight || video.height;
+        if (!__cropRec || !srcW) return results;
         if (now - __cropLast.t > 250 && (++__cropTick % 2 === 0)) {
-            var W = video.videoWidth, H = video.videoHeight, found = [];
+            var W = srcW, H = srcH, found = [];
             var hipY = (lm[23].y + lm[24].y) / 2, shY = (lm[11].y + lm[12].y) / 2, torsoPx = Math.max(0.05, hipY - shY) * H;
             var side = Math.round(Math.min(Math.min(W, H), Math.max(140, torsoPx * 1.0)));
             if (!__cropCanvas) { __cropCanvas = document.createElement("canvas"); __cropCanvas.width = 256; __cropCanvas.height = 256; }
@@ -98,6 +99,9 @@ function augmentHandsForGun(video, lm, results, now) {
     const overlayCanvas = document.getElementById("pose-overlay");
     const ctx = overlayCanvas ? overlayCanvas.getContext("2d") : null;
     let letterbox = { offsetX: 0, offsetY: 0, drawWidth: 0, drawHeight: 0 };
+    // 세로 화면인데 카메라가 가로 영상만 주는 경우(예: 아이폰 Safari): 영상 중앙을 화면 비율로 잘라 꽉 채우기 위한 상태
+    let camCropMode = false;
+    let frameCanvas = null;
     let lastStageW = 0;
     let lastStageH = 0;
     let lastVideoW = 0;
@@ -309,20 +313,34 @@ function augmentHandsForGun(video, lm, results, now) {
             const stageAspect = stageW / stageH;
             const videoAspect = videoW / videoH;
 
-            let drawW, drawH, offX, offY;
-            if (stageAspect > videoAspect) {
-                drawH = stageH;
-                drawW = stageH * videoAspect;
-                offX = (stageW - drawW) / 2;
-                offY = 0;
+            // 세로 화면 + 가로 카메라(아이폰 Safari 등)면 중앙을 화면 비율로 잘라 꽉 채운다.
+            // 표시는 object-fit: cover(같은 중앙 자르기), 인식·사진은 잘라낸 프레임을 써서 좌표가 어긋나지 않게 한다.
+            camCropMode = stageH > stageW && videoW > videoH;
+            let logicalW = videoW, logicalH = videoH;
+            if (camCropMode) {
+                logicalH = videoH;
+                logicalW = Math.max(2, Math.min(videoW, Math.round(videoH * stageAspect)));
+                window.__camCrop = { sx: Math.max(0, Math.round((videoW - logicalW) / 2)), sy: 0, w: logicalW, h: logicalH };
+                webcam.style.objectFit = "cover";
+                letterbox = { offsetX: 0, offsetY: 0, drawWidth: stageW, drawHeight: stageH };
             } else {
-                drawW = stageW;
-                drawH = stageW / videoAspect;
-                offX = 0;
-                offY = (stageH - drawH) / 2;
+                window.__camCrop = null;
+                webcam.style.objectFit = "";
+                let drawW, drawH, offX, offY;
+                if (stageAspect > videoAspect) {
+                    drawH = stageH;
+                    drawW = stageH * videoAspect;
+                    offX = (stageW - drawW) / 2;
+                    offY = 0;
+                } else {
+                    drawW = stageW;
+                    drawH = stageW / videoAspect;
+                    offX = 0;
+                    offY = (stageH - drawH) / 2;
+                }
+                letterbox = { offsetX: offX, offsetY: offY, drawWidth: drawW, drawHeight: drawH };
             }
-
-            letterbox = { offsetX: offX, offsetY: offY, drawWidth: drawW, drawHeight: drawH };
+            window.__camLogical = { w: logicalW, h: logicalH };
             let dbg = document.getElementById("cam-size-badge");
             if (!dbg) {
                 dbg = document.createElement("div");
@@ -330,7 +348,9 @@ function augmentHandsForGun(video, lm, results, now) {
                 dbg.style.cssText = "position:absolute;right:6px;top:126px;z-index:12;font-size:.62rem;color:#e2e8f0;background:rgba(0,0,0,.45);padding:1px 6px;border-radius:8px;pointer-events:none";
                 visionStage.appendChild(dbg);
             }
-            dbg.textContent = "영상 " + videoW + "x" + videoH + (videoW >= videoH ? " 가로" : " 세로") + " / 화면 " + stageW + "x" + stageH;
+            dbg.textContent = camCropMode
+                ? "영상 " + videoW + "x" + videoH + " 가로→중앙 세로 " + logicalW + "x" + logicalH + " 사용 / 화면 " + stageW + "x" + stageH
+                : "영상 " + videoW + "x" + videoH + (videoW >= videoH ? " 가로" : " 세로") + " / 화면 " + stageW + "x" + stageH;
         }
     }
 
@@ -373,7 +393,12 @@ function augmentHandsForGun(video, lm, results, now) {
         const g = c.getContext("2d"); g.fillStyle = "#000"; g.fillRect(0, 0, w, h);
         const lb = letterbox;
         g.save(); g.translate(w, 0); g.scale(-1, 1);          // 화면과 같은 거울 모드
-        g.drawImage(webcam, lb.offsetX, lb.offsetY, lb.drawWidth, lb.drawHeight);
+        if (window.__camCrop) {
+            const cp = window.__camCrop;
+            g.drawImage(webcam, cp.sx, cp.sy, cp.w, cp.h, lb.offsetX, lb.offsetY, lb.drawWidth, lb.drawHeight);
+        } else {
+            g.drawImage(webcam, lb.offsetX, lb.offsetY, lb.drawWidth, lb.drawHeight);
+        }
         g.drawImage(overlayCanvas, 0, 0, w, h);
         g.restore();
         return c;
@@ -903,6 +928,16 @@ function augmentHandsForGun(video, lm, results, now) {
             updateCanvasSizeAndLetterbox();
             clearOverlayCanvas();
 
+            // 자르기 모드에서는 인식 입력도 같은 중앙 자르기 프레임으로 맞춰 좌표 정합을 유지한다.
+            let detectionSource = webcam;
+            if (camCropMode && window.__camCrop) {
+                const cp = window.__camCrop;
+                if (!frameCanvas) frameCanvas = document.createElement("canvas");
+                if (frameCanvas.width !== cp.w || frameCanvas.height !== cp.h) { frameCanvas.width = cp.w; frameCanvas.height = cp.h; }
+                frameCanvas.getContext("2d").drawImage(webcam, cp.sx, cp.sy, cp.w, cp.h, 0, 0, cp.w, cp.h);
+                detectionSource = frameCanvas;
+            }
+
             const currentMission = poses[currentPoseIndex];
             let isMatched = false;
             let bodyEvaluation = null;
@@ -910,7 +945,7 @@ function augmentHandsForGun(video, lm, results, now) {
             let gestureResults = null;
 
             try {
-                poseResults = poseLandmarker.detectForVideo(webcam, now);
+                poseResults = poseLandmarker.detectForVideo(detectionSource, now);
                 const hasPose = poseResults.landmarks && poseResults.landmarks.length > 0;
                 const userLandmarks = hasPose ? poseResults.landmarks[0] : null;
 
@@ -922,9 +957,9 @@ function augmentHandsForGun(video, lm, results, now) {
 
                     if (currentMission.type === "gesture" || currentMission.type === "hybrid") {
                         if (gestureRecognizer) {
-                            gestureResults = gestureRecognizer.recognizeForVideo(webcam, now);
+                            gestureResults = gestureRecognizer.recognizeForVideo(detectionSource, now);
                         }
-                        if (currentMission.id === "dab") gestureResults = augmentHandsForGun(webcam, userLandmarks, gestureResults, now);
+                        if (currentMission.id === "dab") gestureResults = augmentHandsForGun(detectionSource, userLandmarks, gestureResults, now);
                     }
 
                     if (phase === "active") {
@@ -935,7 +970,7 @@ function augmentHandsForGun(video, lm, results, now) {
                         } else if (currentMission.type === "hybrid") {
                             isMatched = checkPoseMatches(currentMission.id, userLandmarks, gestureResults);
                         } else if (currentMission.type === "bonus") {
-                            bodyEvaluation = evaluateFullBodyBonus(userLandmarks, webcam.videoWidth, webcam.videoHeight);
+                            bodyEvaluation = evaluateFullBodyBonus(userLandmarks, window.__camLogical ? window.__camLogical.w : webcam.videoWidth, window.__camLogical ? window.__camLogical.h : webcam.videoHeight);
                             isMatched = bodyEvaluation.valid;
                         }
 
