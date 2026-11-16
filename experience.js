@@ -1,3 +1,51 @@
+
+// v3: 양손 권총 전용 - 전신이 작게 나와 손이 못 잡힐 때, 몸 인식으로 찾은 손 주변만 잘라 확대해 손을 다시 검출한다.
+// 판정 기준(양손 권총 규칙)은 그대로 두고, 손 검출 입력만 보강한다. 이미지 모드 인식기를 따로 만들어 영상 타임스탬프와 섞이지 않게 한다.
+var __cropRec = null, __cropRecLoading = false, __cropCanvas = null, __cropLast = {t: 0, hands: []}, __cropTick = 0;
+function __ensureCropRec() {
+    if (__cropRec || __cropRecLoading || !window.MP_GestureRecognizer || !window.MP_FilesetResolver) return;
+    __cropRecLoading = true;
+    window.MP_FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm").then(function (v) {
+        return window.MP_GestureRecognizer.createFromOptions(v, {
+            baseOptions: {modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task", delegate: "CPU"},
+            runningMode: "IMAGE", numHands: 1
+        });
+    }).then(function (r) { __cropRec = r; }).catch(function (e) { console.warn("손 확대 인식기 준비 실패", e); __cropRecLoading = false; });
+}
+function augmentHandsForGun(video, lm, results, now) {
+    try {
+        var base = results && results.landmarks ? results.landmarks : [];
+        if (base.length >= 2) return results;
+        __ensureCropRec();
+        if (!__cropRec || !video.videoWidth) return results;
+        if (now - __cropLast.t > 250 && (++__cropTick % 2 === 0)) {
+            var W = video.videoWidth, H = video.videoHeight, found = [];
+            var hipY = (lm[23].y + lm[24].y) / 2, shY = (lm[11].y + lm[12].y) / 2, torsoPx = Math.max(0.05, hipY - shY) * H;
+            var side = Math.round(Math.min(Math.min(W, H), Math.max(140, torsoPx * 1.0)));
+            if (!__cropCanvas) { __cropCanvas = document.createElement("canvas"); __cropCanvas.width = 256; __cropCanvas.height = 256; }
+            var ctx = __cropCanvas.getContext("2d");
+            [[15, 17, 19, 21], [16, 18, 20, 22]].forEach(function (ids) {
+                var pts = ids.map(function (i) { return lm[i]; }).filter(function (p) { return p && (p.visibility === undefined || p.visibility >= 0.3); });
+                if (!pts.length) return;
+                var cx = pts.reduce(function (a, p) { return a + p.x; }, 0) / pts.length * W;
+                var cy = pts.reduce(function (a, p) { return a + p.y; }, 0) / pts.length * H;
+                var x0 = Math.max(0, Math.min(W - side, cx - side / 2)), y0 = Math.max(0, Math.min(H - side, cy - side / 2));
+                ctx.drawImage(video, x0, y0, side, side, 0, 0, 256, 256);
+                var r = __cropRec.recognize(__cropCanvas);
+                if (r && r.landmarks && r.landmarks[0]) {
+                    found.push(r.landmarks[0].map(function (p) { return {x: (x0 + p.x * side) / W, y: (y0 + p.y * side) / H, z: p.z}; }));
+                }
+            });
+            __cropLast = {t: now, hands: found};
+        }
+        var extra = __cropLast.hands.filter(function (h) {
+            return !base.some(function (b) { return Math.hypot(b[0].x - h[0].x, b[0].y - h[0].y) < 0.05; });
+        });
+        if (!extra.length) return results;
+        return {landmarks: base.concat(extra), gestures: results && results.gestures ? results.gestures : [], handedness: results ? results.handedness : []};
+    } catch (e) { return results; }
+}
+
 /**
  * experience.js - 휴대폰 최적화 풀스크린 포즈 게임 엔진 (최종 수정본)
  * 1) 카메라/모델 비동기 대기 중 종료 시 startBtn 잠금 즉시 해제 및 세대 충돌 방지
@@ -876,6 +924,7 @@
                         if (gestureRecognizer) {
                             gestureResults = gestureRecognizer.recognizeForVideo(webcam, now);
                         }
+                        if (currentMission.id === "dab") gestureResults = augmentHandsForGun(webcam, userLandmarks, gestureResults, now);
                     }
 
                     if (phase === "active") {
