@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>온몸으로 찰칵! 포즈 챌린지</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --primary: #f97316;
+    --primary-hover: #ea580c;
+    --primary-light: #ffedd5;
+    --bg-gradient: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
+    --text-main: #374151;
+    --text-muted: #6b7280;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    font-family: 'Jua', sans-serif;
+    background: var(--bg-gradient);
+    color: var(--text-main);
+}
+
+/* 메인 뷰포트 컨테이너 (100dvh 전체 활용) */
+.app-viewport {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 공통 화면 레이아웃 */
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    min-height: 0;
+    position: relative;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* 1. 시작 화면 & 3. 결과 화면 (스크롤 카드 뷰) */
+.scroll-screen-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    gap: 16px;
+}
+
+.card-panel {
+    width: 100%;
+    max-width: 440px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 2rem;
+    padding: 24px 20px;
+    box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border: 3px solid #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* 2. 게임 화면: 카메라가 남은 공간을 최대로 채우는 꽉 찬 구조 */
+#game-screen {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+/* 상단 정보 바 (컴팩트 헤더) */
+.game-compact-header {
+    width: 100%;
+    padding: 10px 16px;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 20;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.step-chip {
+    background: #f97316;
+    color: #ffffff;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+}
+
+.score-display-group {
+    display: flex;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: bold;
+}
+
+.score-base-chip {
+    color: #fdba74;
+}
+
+.score-bonus-chip {
+    color: #4ade80;
+}
+
+.pose-brief-title {
+    font-size: 1.35rem;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pose-brief-desc {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 비전 뷰포트 (남은 공간 전체 점유 및 Contain 정렬) */
+.vision-stage {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    position: relative;
+    background: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.vision-feed,
+.vision-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scaleX(-1); /* 거울 모드 일치 */
+}
+
+.vision-canvas {
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 전체 화면 포즈 사진 2초 예고 Overlay */
+.pose-preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.94);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 30;
+    text-align: center;
+}
+
+.pose-preview-overlay.active {
+    display: flex;
+}
+
+.preview-image-frame {
+    max-width: 90%;
+    max-height: 60vh;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    border: 4px solid #f97316;
+    background: #ffffff;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-image-frame img {
+    width: 100%;
+    height: 100%;
+    max-height: 58vh;
+    object-fit: contain;
+    display: block;
+}
+
+.preview-badge {
+    background: #ea580c;
+    color: #ffffff;
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    margin-bottom: 8px;
+}
+
+.preview-caption {
+    color: #f8fafc;
+    font-size: 1.25rem;
+}
+
+/* 비전 뷰 상태 배너 & 축하 이펙트 */
+.vision-hud-banner {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f8fafc;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    font-size: 0.9rem;
+    z-index: 15;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.vision-hud-banner.success {
+    background: rgba(22, 163, 74, 0.95);
+    border-color: #4ade80;
+    color: #ffffff;
+    transform: translateX(-50%) scale(1.08);
+}
+
+.toast-bonus-popup {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 2rem;
+    font-size: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    border: 3px solid #ffffff;
+    pointer-events: none;
+    z-index: 40;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast-bonus-popup.pop {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* 하단 씬: 얇은 2초 게이지 및 컴팩트 조작 바 */
+.game-bottom-deck {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px 12px 16px;
+    gap: 8px;
+    z-index: 20;
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-track-slim {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #f97316 0%, #22c55e 100%);
+    transition: width 0.05s linear;
+}
+
+.hold-numeric-label {
+    position: absolute;
+    right: 0;
+    top: -16px;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+}
+
+.game-action-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.toolbar-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 8px 10px;
+    border-radius: 9999px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.toolbar-btn:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-btn.btn-danger {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+/* 타이포그래피 & 공용 버튼 */
+.brand-title {
+    color: var(--primary);
+    font-size: 2.25rem;
+    line-height: 1.2;
+    margin-bottom: 6px;
+}
+
+.brand-desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.input-box-wrapper {
+    width: 100%;
+    max-width: 320px;
+    margin: 12px 0 6px 0;
+}
+
+.text-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 9999px;
+    border: 2px solid #fed7aa;
+    outline: none;
+    font-family: inherit;
+    font-size: 1.1rem;
+    text-align: center;
+    background: #ffffff;
+    transition: border-color 0.2s;
+}
+
+.text-input:focus {
+    border-color: var(--primary);
+}
+
+.btn-cta {
+    width: 100%;
+    max-width: 320px;
+    padding: 14px 28px;
+    border-radius: 9999px;
+    border: none;
+    background: var(--primary);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 1.25rem;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-cta:hover {
+    background: var(--primary-hover);
+}
+
+.btn-cta:active {
+    transform: scale(0.97);
+}
+
+/* 랭킹 및 동기화 상태 컨테이너 마운트 */
+.sync-badge-box {
+    font-size: 0.8rem;
+    color: #ea580c;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    margin-top: 6px;
+}
+
+.leaderboard-mount-box {
+    width: 100%;
+    max-width: 440px;
+    background: #ffffff;
+    border-radius: 1.5rem;
+    padding: 14px;
+    border: 2px solid #ffedd5;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* 푸터 (전체 고정) */
+.global-footer {
+    padding: 10px 16px;
+    background: #fff7ed;
+    border-top: 1px solid #ffedd5;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #9a3412;
+    flex-shrink: 0;
+    z-index: 25;
+}
+
+#game-screen .global-footer {
+    background: #0b1120;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+/* 하위 호환성 전용 숨김 요소 */
+.legacy-hidden-element {
+    display: none !important;
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+
+/* ==========================================================================
+   모바일 최적화 및 뷰포트 맞춤 반응형 추가 스타일
+   ========================================================================== */
+
+/* 1. 상단 헤더: flex-wrap 적용 및 긴 닉네임 ellipsis 생략 처리 */
+.header-top-row {
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+#player-tag {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.game-compact-header > div:last-child {
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.pose-brief-title {
+    flex-shrink: 0;
+}
+
+.pose-brief-desc {
+    white-space: normal !important;
+    word-break: keep-all;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: 100%;
+}
+
+/* 2. 진행 바: 16px 높이 내부에 숫자 텍스트를 우측에 겹쳐 표시 */
+.progress-track-slim {
+    height: 16px !important;
+    position: relative;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.hold-numeric-label {
+    top: 50% !important;
+    right: 8px !important;
+    transform: translateY(-50%) !important;
+    font-size: 0.7rem !important;
+    line-height: 1 !important;
+    font-weight: bold;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* 3. 2초 예고 프레임: 화면 크기에 맞춰 꽉 차게 확장 */
+.pose-preview-overlay {
+    padding: 8px !important;
+}
+
+.preview-badge,
+.preview-caption {
+    flex-shrink: 0;
+}
+
+.preview-image-frame {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    width: min(100%, 720px) !important;
+    margin-bottom: 8px !important;
+}
+
+.preview-image-frame img {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+}
+
+/* 4. HUD 텍스트 배너 및 보너스 팝업 반응형 줄바꿈 */
+.vision-hud-banner {
+    max-width: calc(100% - 24px) !important;
+    white-space: normal !important;
+    text-align: center !important;
+    line-height: 1.3;
+}
+
+.toast-bonus-popup {
+    max-width: calc(100% - 32px);
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* 5. Safe Area 및 소형 가로 모드(height 480px 이하) 패딩 최적화 */
+.app-viewport {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (max-height: 480px) {
+    .game-compact-header {
+        padding: 4px 8px !important;
+    }
+    .game-bottom-deck {
+        padding: 4px 8px 6px 8px !important;
+    }
+    .global-footer {
+        padding: 4px 8px !important;
+        font-size: 0.65rem !important;
+    }
+}
+
+/* preview-overlay 기본 구조 및 상하단 텍스트 영역 */
+#preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 50;
+}
+
+#preview-overlay.active {
+  display: flex !important;
+}
+
+#preview-overlay .preview-badge,
+#preview-overlay .preview-caption {
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  line-height: 1.2;
+}
+
+/* stage 남은 영역을 채우는 이미지 프레임 (vh 배제, flex 기반 비율 축소) */
+#preview-overlay .preview-image-frame {
+  flex: 1 1 0% !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: min(100%, 900px) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 4px auto !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* 좌측 메인 사진 카드 (7) */
+#preview-overlay .preview-card-main {
+  flex: 7 1 0% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* 우측 힌트 카드 (3) */
+#preview-overlay .preview-card-hint {
+  flex: 3 1 0% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 8px;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+#preview-overlay .preview-hint-header {
+  flex-shrink: 0;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: #93c5fd;
+  background: rgba(30, 58, 138, 0.4);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+#preview-overlay .preview-hint-body {
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 인라인 style="display: none"을 덮지 않도록 :not([style*="display: none"]) 처리 */
+#preview-overlay #pose-img,
+#preview-overlay #pose-hint-img:not([style*="display: none"]) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+}
+
+#preview-overlay .preview-hint-fallback {
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  font-size: 11px;
+  color: #cbd5e1;
+  text-align: center;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+
+/* 세로 폭이 매우 좁은 환경(높이 360px 이하) 폰트/패딩 최적화 */
+@media (max-height: 360px) {
+  #preview-overlay {
+    padding: 4px;
+  }
+  #preview-overlay .preview-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  #preview-overlay .preview-caption {
+    font-size: 11px;
+  }
+  #preview-overlay .preview-image-frame {
+    margin: 2px auto !important;
+    gap: 6px !important;
+  }
+  #preview-overlay .preview-hint-header {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+}
+
+#elapsed-time{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:.85rem;color:#e0f2fe;}
+/* Codex 후속: 좁은 화면의 안내와 타이머 가독성 */
+@media (max-width: 600px) {
+  .game-compact-header > div:nth-child(2) { flex-wrap: wrap; gap: 3px; }
+  .pose-brief-desc { width: 100%; white-space: normal; font-size: .76rem; }
+  #player-tag { max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header-top-row { font-size: .8rem; }
+  .toolbar-btn { padding: 8px 3px; font-size: .7rem; word-break: keep-all; }
+}
+
+/* 직접 수정31: 시작 사진 썸네일과 전신 보너스 텍스트 안내 */
+.pose-thumbnail-strip { display: flex; gap: 12px; width: 100%; margin: 0 0 8px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding: 4px 0 10px; }
+.pose-thumbnail-strip img { flex: 0 0 78%; width: 78%; height: auto; aspect-ratio: 1; object-fit: contain; scroll-snap-align: center; border-radius: 16px; border: 1px solid #fed7aa; background: #fff7ed; }
+.brand-title { font-size: clamp(1.8rem,7vw,2.25rem); }
+.brand-title small { display: block; font-size: .58em; margin-top: 7px; }
+.footer-book-link { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-width: 26px; min-height: 26px; margin-right: 4px; }
+.footer-book-link img { width: 16px; height: 22px; object-fit: contain; border-radius: 2px; }
+.footer-book-link:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+.family-invite { font-size: .9rem; color: #9a3412; margin: 9px 0 0; }
+.welcome-topline { width: 100%; margin-bottom: 14px; }
+.guide-launch { display: flex; width: 100%; justify-content: center; align-items: center; gap: 12px; border: 0; border-radius: 15px; padding: 10px; background: #ffedd5; color: #9a3412; font: inherit; cursor: pointer; text-align: left; }
+.guide-launch .bouncy-face { font-size: 2.6rem; display: inline-block; animation: guide-bounce 1.8s ease-in-out infinite; }
+.guide-launch small { display: block; font-size: .72rem; margin-top: 4px; }
+@keyframes guide-bounce { 0%,70%,100% { transform: translateY(0) rotate(-7deg); } 30% { transform: translateY(-7px) rotate(7deg); } 45% { transform: translateY(0) rotate(-4deg); } }
+.gallery-caption { color: #9a3412; font-size: .85rem; margin: 14px 0 5px; }
+.gallery-nav { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; margin-bottom: 16px; color: #9a3412; }
+.gallery-nav button { min-width: 44px; min-height: 44px; border: 1px solid #fed7aa; border-radius: 12px; background: #fff7ed; font: inherit; color: #9a3412; cursor: pointer; }
+.practice-entry { width: 100%; min-height: 48px; background: #eff6ff; color: #075985; border: 2px solid #bae6fd; border-radius: 16px; font: inherit; font-size: 1.05rem; cursor: pointer; margin-bottom: 8px; }
+.practice-entry-note { font-size: .8rem; color: #0369a1; margin-bottom: 15px; }
+#practice-controls { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+#practice-controls[hidden] { display: none; }
+#practice-controls select { flex: 1; min-width: 0; min-height: 38px; background: #1e293b; color: white; border: 1px solid #64748b; border-radius: 8px; font: inherit; padding: 5px; }
+#practice-guide-btn { min-height: 38px; background: #e0f2fe; color: #075985; border: 0; border-radius: 8px; font: inherit; padding: 5px 10px; }
+#game-screen.practice-mode #game-save-status,#game-screen.practice-mode .score-display-group { display: none; }
+.guide-dialog { width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; background: #fff7ed; color: #374151; padding: 0; }
+.guide-dialog::backdrop { background: #1e293b; }
+.guide-shell { height: 100%; display: flex; flex-direction: column; }
+.guide-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px max(16px,env(safe-area-inset-right)); background: white; border-bottom: 1px solid #fed7aa; }
+.guide-header strong { color: #c2410c; font-size: 1.05rem; }
+.guide-header button,.guide-navigation button { min-height: 44px; border: 1px solid #fdba74; border-radius: 12px; background: white; color: #9a3412; padding: 8px 14px; font: inherit; cursor: pointer; }
+.guide-body { flex: 1; min-height: 0; overflow-y: auto; padding: 22px 18px; touch-action: pan-y; }
+.guide-page { max-width: 900px; margin: auto; text-align: center; }
+.guide-page h2 { color: #c2410c; font-size: clamp(1.6rem,5vw,2.3rem); margin: 6px 0 12px; }
+.guide-page p { max-width: 680px; margin: 10px auto; font-size: clamp(1rem,3.5vw,1.2rem); line-height: 1.65; word-break: keep-all; }
+.guide-page .guide-success { color: #075985; background: #e0f2fe; border-radius: 14px; padding: 12px; }
+.guide-emoji { font-size: 4rem; }
+.pose-guide-page .guide-emoji { display: none; }
+.guide-photo-pair { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); align-items: center; gap: 14px; width: min(100%,650px); margin: 18px auto; }
+.guide-photo-pair figure { min-width: 0; }
+.guide-photo-pair img { display: block; width: 100%; height: min(30vh,240px); object-fit: contain; border-radius: 15px; background: white; }
+.guide-photo-pair figcaption { font-size: .85rem; margin-top: 7px; color: #6b7280; }
+.guide-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 6px; }
+.guide-dots button { min-width: 24px; min-height: 24px; border: 0; background: transparent; cursor: pointer; }
+.guide-dots button::after { content: ''; display: block; width: 8px; height: 8px; border-radius: 50%; background: #fdba74; margin: auto; }
+.guide-dots button[aria-current='step']::after { background: #c2410c; transform: scale(1.4); }
+.guide-navigation { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 8px 12px; }
+.guide-footer { padding: 8px 16px max(12px,env(safe-area-inset-bottom)); background: white; border-top: 1px solid #fed7aa; text-align: center; }
+.guide-footer .practice-entry { max-width: 540px; margin: 4px auto; }
+.guide-footer p { font-size: .8rem; color: #0369a1; }
+@media(prefers-reduced-motion:reduce) { .guide-launch .bouncy-face { animation: none; } }
+@media(max-width:400px) { .guide-launch { padding: 10px; gap: 8px; } .guide-launch .bouncy-face { font-size: 2rem; } .guide-body { padding: 12px; } .guide-photo-pair { gap: 8px; } }
+.bonus-preview-text { display: none; flex: 1 1 auto; min-height: 0; width: min(100%,700px); padding: 12px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #e2e8f0; line-height: 1.35; }
+.bonus-preview-text h2 { font-size: clamp(1.6rem,5vw,2.5rem); color: #fbbf24; }
+.bonus-preview-text .bonus-intro { font-size: clamp(1.1rem,4vw,1.65rem); color: #fff; }
+.bonus-preview-text p { font-size: clamp(.85rem,3vw,1.1rem); }
+.bonus-preview-text strong { color: #86efac; font-size: clamp(.9rem,3vw,1.2rem); }
+.bonus-score-levels { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; width: min(100%,520px); }
+.bonus-score-levels span { padding: 8px 0; border-radius: 8px; background: #1e3a5f; color: #bae6fd; font-size: clamp(.8rem,3vw,1.1rem); }
+.bonus-score-levels span:last-child { background: #f97316; color: white; }
+#preview-overlay.bonus-text-preview .preview-image-frame, #preview-overlay.bonus-text-preview .preview-caption { display: none !important; }
+#preview-overlay.bonus-text-preview .bonus-preview-text { display: flex; }
+@media (max-height:480px) { .bonus-preview-text { gap: 4px; padding: 3px; } .bonus-preview-text h2 { font-size: 1.3rem; } .bonus-preview-text .bonus-intro { font-size: 1rem; } .bonus-preview-text p,.bonus-preview-text strong { font-size: .78rem; } .bonus-score-levels span { padding: 4px 0; } }
+
+/* 직접 수정37: 한 화면 시작 카드와 클릭해서 여는 두 안내 버튼 */
+#start-screen .start-screen-content { overflow: hidden; min-height: 0; padding: 12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left)); }
+#start-screen .start-panel { flex: 1; min-height: 0; height: 100%; max-height: 800px; max-width: 560px; padding: 16px; gap: clamp(4px,.8dvh,8px); border-radius: 26px; }
+#start-screen .start-panel > :not(.pose-thumbnail-strip) { flex-shrink: 0; }
+#start-screen .welcome-topline { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; margin: 0; padding: 4px 2px 7px; }
+#start-screen .home-action { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 58px; margin: 0; padding: 7px 6px; border: 2px solid #fdba74; border-radius: 14px; background: #fff1d6; color: #9a3412; font: inherit; font-size: .95rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: 0 5px 0 #fb923c,0 8px 12px #f9731626; animation: home-card-pop 2.7s ease-in-out infinite; }
+#start-screen .home-action small { display: block; font-size: .68rem; margin-top: 4px; font-weight: normal; }
+#start-screen .home-action .action-icon { display: inline-block; font-size: 1.8rem; line-height: 1; animation: none; }
+#start-screen .home-action.practice-entry { background: #e0f2fe; color: #075985; border-color: #7dd3fc; box-shadow: 0 5px 0 #38bdf8,0 8px 12px #0ea5e926; animation-delay: -.85s; }
+#start-screen .home-action:focus-visible { outline: 3px solid #c2410c; outline-offset: 4px; }
+#start-screen .home-action:active { animation-play-state: paused; transform: translateY(3px); box-shadow: 0 2px 0 #fb923c; }
+@keyframes home-card-pop { 0%,60%,100% { transform: translateY(0) scale(1); } 20% { transform: translateY(-4px) scale(1.02); } 35% { transform: translateY(1px) scale(.99); } 46% { transform: translateY(-2px) scale(1.01); } }
+.title-lockup { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 8px; width: 100%; }
+.title-pose { width: clamp(44px,13vw,64px); height: clamp(54px,16vw,76px); object-fit: contain; border: 2px solid #fed7aa; border-radius: 14px; background: #fff7ed; box-shadow: 0 3px 6px #9a341218; }
+.title-pose.dab { transform: rotate(-8deg); }
+.title-pose.heart { transform: rotate(8deg); }
+#start-screen .brand-title { font-size: clamp(1.35rem,5.6vw,2rem); white-space: nowrap; color: #f97316; }
+#start-screen .brand-title small { font-size: .6em; margin-top: 4px; }
+#start-screen .family-invite { margin: 0; font-size: .83rem; }
+#start-screen .brand-desc { font-size: .82rem; line-height: 1.35; word-break: keep-all; }
+#start-screen .pose-thumbnail-strip { flex: 1 1 0; min-height: 32px; width: 100%; margin: 0; padding: 0; gap: 10px; scrollbar-width: none; }
+#start-screen .pose-thumbnail-strip::-webkit-scrollbar { display: none; }
+#start-screen .pose-thumbnail-strip img { flex: 0 0 72%; width: 72%; height: 100%; min-height: 0; aspect-ratio: auto; border-radius: 14px; }
+#start-screen .gallery-caption { margin: 0; font-size: .72rem; }
+#start-screen .gallery-nav { margin: 0; font-size: .83rem; }
+#start-screen .gallery-nav button { min-width: 44px; min-height: 32px; }
+.start-entry-form { display: grid; grid-template-columns: minmax(0,1fr); gap: 7px; width: 100%; max-width: 400px; }
+#start-screen .input-box-wrapper { max-width: none; margin: 0; }
+#start-screen .text-input { min-height: 44px; padding: 8px 12px; font-size: 1rem; }
+#start-screen .btn-cta { max-width: none; min-height: 46px; padding: 8px 12px; font-size: 1.12rem; }
+.home-privacy { font-size: .68rem; color: #6b7280; line-height: 1.3; word-break: keep-all; }
+#start-screen .sync-badge-box { margin: 0; padding: 3px 10px; font-size: .7rem; }
+#start-screen .global-footer { padding: 4px 8px max(4px,env(safe-area-inset-bottom)); font-size: .72rem; }
+@media(min-width:540px) { .start-entry-form { max-width: none; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; } }
+@media(max-height:650px) {
+    #start-screen .start-screen-content { padding-top: 6px; padding-bottom: 6px; }
+    #start-screen .start-panel { padding: 10px 12px; gap: 4px; }
+    #start-screen .home-action { min-height: 48px; padding: 5px; font-size: .87rem; }
+    #start-screen .home-action small { font-size: .63rem; margin-top: 2px; }
+    #start-screen .home-action .action-icon { font-size: 1.5rem; }
+    .title-pose { width: 44px; height: 54px; }
+    #start-screen .family-invite { font-size: .76rem; }
+    #start-screen .brand-desc { font-size: .74rem; }
+    #start-screen .brand-title { font-size: clamp(1.3rem,5.5vw,1.8rem); }
+    #start-screen .gallery-nav button { min-height: 30px; }
+    #start-screen .gallery-caption { font-size: .66rem; }
+    #start-screen .sync-badge-box { font-size: .65rem; padding: 2px 8px; }
+}
+@media(max-height:500px) and (min-width:540px) {
+    #start-screen .start-panel { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-rows: auto auto auto auto minmax(44px,1fr) auto auto; column-gap: 16px; max-width: 920px; }
+    #start-screen .welcome-topline { grid-column: 1; grid-row: 1; }
+    #start-screen .title-lockup { grid-column: 1; grid-row: 2; }
+    #start-screen .family-invite { grid-column: 1; grid-row: 3; }
+    #start-screen .brand-desc { grid-column: 1; grid-row: 4; font-size: .69rem; }
+    #start-screen .pose-thumbnail-strip { grid-column: 2; grid-row: 1 / 6; height: 100%; }
+    #start-screen .gallery-nav { grid-column: 2; grid-row: 6; }
+    #start-screen .gallery-caption { grid-column: 2; grid-row: 7; }
+    #start-screen .start-entry-form { grid-column: 1; grid-row: 5; }
+    #start-screen .home-privacy { grid-column: 1; grid-row: 6; font-size: .6rem; }
+    #start-screen .sync-badge-box { grid-column: 1; grid-row: 7; justify-self: center; }
+    #start-screen .brand-title { font-size: 1.3rem; }
+    .title-pose { width: 36px; height: 42px; }
+    #start-screen .home-action { min-height: 44px; font-size: .78rem; gap: 4px; }
+    #start-screen .home-action .action-icon { font-size: 1.3rem; }
+    #start-screen .home-action small { font-size: .6rem; }
+    #start-screen .text-input { font-size: .85rem; }
+    #start-screen .btn-cta { font-size: 1rem; min-height: 44px; }
+}
+@media(prefers-reduced-motion:reduce) { #start-screen .home-action { animation: none; } }
+
+/* 세로 화면: 카메라 영상이 화면 전체 높이를 쓰도록 헤더·하단 조작을 영상 위에 겹침(영상은 자르지 않고 contain, 좌표 정합 유지) */
+@media (orientation: portrait) {
+    #game-screen .vision-stage { position: absolute; top: 0; left: 0; right: 0; bottom: 0; height: auto; z-index: 1; }
+    #game-screen .game-compact-header { position: relative; z-index: 30; background: rgba(15,23,42,.55); }
+    #game-screen .game-bottom-deck { position: relative; z-index: 30; margin-top: auto; background: rgba(15,23,42,.55); }
+    #game-screen .global-footer { display: none; }
+    #game-screen #preview-overlay { padding-top: 96px; padding-bottom: 120px; }
+}
+</style>
+
+    <script type="module">
+        import {
+            PoseLandmarker,
+            GestureRecognizer,
+            FilesetResolver
+        } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+        window.MP_PoseLandmarker = PoseLandmarker;
+        window.MP_GestureRecognizer = GestureRecognizer;
+        window.MP_FilesetResolver = FilesetResolver;
+        window.dispatchEvent(new Event('mediapipe-ready'));
+    </script>
+</head>
+<body>
+<div class="app-viewport">
+
+    <!-- 1. 시작 화면 -->
+    <div id="start-screen" class="screen active">
+        <div class="scroll-screen-content start-screen-content">
+            <div class="card-panel start-panel">
+                <div class="welcome-topline">
+                    <button id="guide-open-btn" class="guide-launch home-action" type="button" aria-haspopup="dialog"><span class="action-icon" aria-hidden="true">🤪</span><span>캐러셀 설명서<small>사진으로 배우기</small></span></button>
+                    <button id="practice-home-btn" class="practice-entry home-action" type="button"><span class="action-icon" aria-hidden="true">📷</span><span>연습 모드<small>점수 없이 미리 연습</small></span></button>
+                </div>
+
+                <div class="title-lockup"><img class="title-pose dab" src="photos-gun-v3.png" alt="양손 권총 포즈 사진" width="64" height="76"><h1 class="brand-title">온몸으로 찰칵!<small>포즈 챌린지</small></h1><img class="title-pose heart" src="photos-heart-v2.png" alt="머리 위 하트 포즈 사진" width="64" height="76"></div>
+                <p class="family-invite">가족과 함께 도전해보세요!!</p>
+                <p class="brand-desc">
+                    <strong>7가지 포즈 × 100점</strong> + 전신·깜짝 보너스!
+                </p>
+                <div class="pose-thumbnail-strip" aria-label="도전할 일곱 가지 포즈"><img src="photos-big-v-v2.png" alt="큰 V 예시" title="큰 V" width="120" height="120" decoding="async"><img src="photos-heart-v2.png" alt="머리 위 하트 예시" title="머리 위 하트" width="120" height="120" decoding="async"><img src="photos-victory-v2.png" alt="한손 브이 예시" title="한손 브이" width="120" height="120" decoding="async"><img src="photos-thumb-up-v2.png" alt="엄지척 예시" title="엄지척" width="120" height="120" decoding="async"><img src="photos-flower-v2.png" alt="양손 꽃피우기 예시" title="양손 꽃피우기" width="120" height="120" decoding="async"><img src="photos-hero-v2.png" alt="슈퍼히어로 예시" title="슈퍼히어로" width="120" height="120" decoding="async"><img src="photos-gun-v3.png" alt="양손 권총 예시" title="양손 권총" width="120" height="120" decoding="async"></div>
+                <p class="gallery-caption">옆으로 넘겨 포즈 보기 ↔ · 자세한 안내는 설명서에서!</p>
+                <div class="gallery-nav"><button id="gallery-prev" type="button" aria-label="이전 포즈 사진">←</button><span id="gallery-position" aria-live="polite">1 / 7 · 큰 V</span><button id="gallery-next" type="button" aria-label="다음 포즈 사진">→</button></div>
+                <div class="start-entry-form">
+                <div class="input-box-wrapper">
+                    <input type="text" id="nickname-input" class="text-input" placeholder="별명 (실명 금지, 최대 12자)" aria-label="닉네임" maxlength="12">
+                </div>
+
+                <button id="start-btn" class="btn-cta">게임 시작하기</button><p id="test-version-note" style="margin:8px 0 0;font-size:.85rem;color:#92400e;background:#fef3c7;border-radius:8px;padding:6px 10px">별명(실명 금지)과 성공 결과만 랭킹에 공개돼요. 점수 기록은 행사 진행자가 이 기기에서 로그인한 뒤에만 저장돼요. 카메라 영상은 서버로 보내지 않아요. 결과 화면에서 고른 사진만 직접 QR로 받을 수 있어요.</p><details style="margin-top:8px;font-size:.85rem"><summary>행사 진행자 로그인</summary><div style="margin-top:6px"><input type="password" id="op-pin" autocomplete="off" placeholder="운영자 비밀번호" style="padding:8px;border:1px solid #ccc;border-radius:8px"> <button type="button" id="op-login" style="padding:8px 12px;border:0;border-radius:8px;background:#444;color:#fff">로그인</button> <button type="button" id="op-logout" style="display:none;padding:8px 12px;border:0;border-radius:8px;background:#999;color:#fff">로그아웃</button><p id="op-state" style="margin:4px 0"></p><p id="op-msg" style="margin:0;color:#b00020"></p></div></details>
+                </div>
+
+                <p class="home-privacy">
+                    카메라 영상·사진·신체 좌표는 기본으로 이 기기 안에서만 처리해요. 결과 화면에서 직접 고른 사진을 'QR로 받기'로 보낼 때만, 그 사진이 만료기한(TTL) 20분의 서버 임시저장(Cloudflare KV)에 올라가요.<br>랭킹에는 별명과 점수만 기록해요.
+                </p>
+                <div id="game-sync-status" class="sync-badge-box">점수 서버 준비 완료</div>
+            </div>
+        </div>
+        <footer class="global-footer">
+            <a class="footer-book-link" href="https://vibecoding25.notion.site/" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 도서 자료 (새 창)"><img src="assets-book-cover.jpg" alt="책 표지" width="16" height="22" decoding="async"></a>Copyright ⓒ math-tong All right reserved
+        </footer>
+    </div>
+
+    <!-- 2. 게임 화면 -->
+    <div id="game-screen" class="screen">
+        <!-- 상단 헤더 -->
+        <div class="game-compact-header">
+            <div class="header-top-row">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span id="player-tag" style="color: #cbd5e1; font-size: 0.85rem;">도전자: -</span>
+                    <span id="step-badge" class="step-chip">1 / 7</span><span id="elapsed-time" aria-label="경과 시간">⏱ 00:00</span>
+                </div>
+                <div class="score-display-group">
+                    <span id="score-text" class="score-base-chip">0점</span>
+                    <span id="bonus-score-text" class="score-bonus-chip">+0</span>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;">
+                <div id="pose-title" class="pose-brief-title">큰 V 🙆‍♂️</div>
+                <div id="pose-desc" class="pose-brief-desc">두 팔을 머리 위로 시원하게 뻗어 V자를 만드세요!</div>
+            </div>
+            <div id="practice-controls" hidden><select id="practice-pose-select" aria-label="연습할 포즈"><option value="big_v">큰 V</option><option value="heart">머리 위 하트</option><option value="victory">한손 브이</option><option value="thumb_up">엄지척</option><option value="flower">양손 꽃피우기</option><option value="hero">슈퍼히어로</option><option value="dab">양손 권총</option><option value="body_bonus">전신 보너스</option></select><button id="practice-guide-btn" type="button">📖 안내 보기</button></div>
+        </div>
+
+        <!-- 중앙 비전 뷰포트 (카메라 + 캔버스 오버레이 + 2초 예고) -->
+        <div id="vision-stage" class="vision-stage">
+            <video id="webcam" class="vision-feed" autoplay playsinline muted></video>
+            <canvas id="pose-overlay" class="vision-canvas"></canvas>
+
+            <div id="cam-status" style="position: absolute; color: #94a3b8; font-size: 0.9rem; text-align: center; padding: 16px;">
+                카메라 준비 중입니다...
+            </div>
+
+            <!-- 비전 헤드업 텍스트 배너 -->
+            <div id="status-banner" class="vision-hud-banner">준비 중...</div>
+
+            <!-- 깜짝 보너스 팝업 -->
+            <div id="bonus-toast" class="toast-bonus-popup">보너스 +20점! ✨</div>
+
+            <!-- 포즈 사진 2초 전체 예고 오버레이 -->
+<div id="preview-overlay" class="pose-preview-overlay">
+  <div id="preview-badge" class="preview-badge">포즈 예시 (2초 후 시작)</div>
+  <div class="preview-image-frame">
+    <div class="preview-card preview-card-main">
+      <img id="pose-img" src="" alt="포즈 예시 사진">
+    </div>
+    <div class="preview-card preview-card-hint">
+      <div class="preview-hint-header">자세 힌트</div>
+      <div class="preview-hint-body">
+        <img id="pose-hint-img" src="" alt="관절 연결선 힌트">
+        <div id="pose-hint-fallback" class="preview-hint-fallback" style="display: none;">
+          힌트 이미지를 불러올 수 없습니다
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="bonus-preview-text" class="bonus-preview-text" role="note">
+    <h2>전신 보너스!</h2>
+    <div class="bonus-example" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);border-radius:12px;padding:6px 10px"><img src="hints-hero.svg" alt="예시 자세: 팔다리를 크게 펼친 전신 자세" style="height:clamp(70px,22vh,150px);width:auto;border-radius:8px"><span style="font-size:clamp(.8rem,2.8vw,1rem);color:#fff;text-align:left">예시 자세 (어떤 자세든 OK!)<br>보이는 관절이 많고(22개 기준)<br>팔다리를 크게 움직일수록 점수 UP</span></div>
+    <p class="bonus-intro">가장 많은 관절로 파이프를 구성하면<br>받을 수 있는 보너스 점수!!</p>
+    <p>몸 전체를 화면 안에! 팔·다리를 크게 펼쳐요.</p>
+    <div class="bonus-score-levels" aria-label="보너스 7단계 점수"><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700점</span></div>
+    <strong>관절이 많이 보이고 동작이 클수록 높은 점수!</strong>
+    <p class="bonus-hold-copy">자세를 2초 유지하면 한 번 확정됩니다.</p>
+  </div>
+  <div id="preview-caption" class="preview-caption">잠시 후 카메라가 시작됩니다!</div>
+</div>
+
+        </div>
+
+        <!-- 하단 조작 바 & 얇은 2초 게이지 -->
+        <div class="game-bottom-deck">
+<div id="game-save-status" role="status" style="font-size:.72rem;text-align:center"></div>
+            <div class="progress-track-slim">
+                <div id="progress-fill" class="progress-bar-fill"></div>
+                <span id="hold-text" class="hold-numeric-label">0.0s</span>
+            </div>
+
+            <div class="game-action-toolbar">
+                <button id="pause-resume-btn" class="toolbar-btn">⏸️ 일시정지</button>
+                <button id="replay-photo-btn" class="toolbar-btn">🖼️ 사진 다시보기</button>
+                <button id="decor-toggle" class="toolbar-btn" aria-pressed="true">🎨 장식 켜짐</button>
+                <button id="exit-game-btn" class="toolbar-btn btn-danger">⏹️ 게임 종료</button>
+            </div>
+        </div>
+
+        <footer class="global-footer">
+            <a class="footer-book-link" href="https://vibecoding25.notion.site/" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 도서 자료 (새 창)"><img src="assets-book-cover.jpg" alt="책 표지" width="16" height="22" decoding="async"></a>Copyright ⓒ math-tong All right reserved
+        </footer>
+    </div>
+
+    <!-- 3. 결과 화면 -->
+    <div id="result-screen" class="screen">
+        <div class="scroll-screen-content">
+            <div class="card-panel">
+                <div style="font-size: 3.5rem; margin-bottom: 4px;">🎉👑🎊</div>
+                <h2 style="font-size: 2rem; color: #f97316; margin-bottom: 6px;">미션 완료!</h2>
+                <p id="result-user-summary" style="font-size: 1rem; color: #4b5563; margin-bottom: 12px;">선생님, 7개 포즈를 모두 완수했습니다!</p>
+
+                <!-- 점수 상세 패널 -->
+                <div style="width: 100%; background: #fff7ed; border: 2px solid #fed7aa; border-radius: 1.25rem; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: #4b5563;">
+                        <span>기본 점수 (100점 × 7)</span>
+                        <strong id="result-base-score" style="color: #c2410c;">700점</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: #4b5563;">
+                        <span>이벤트 + 전신 보너스</span>
+                        <strong id="result-bonus-score" style="color: #16a34a;">+0점</strong>
+                    </div>
+                    <div style="height: 1px; background: #fed7aa;"></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold; color: #ea580c;">
+                        <span>최종 합계 점수</span>
+                        <span id="result-total-score">700점</span>
+                    </div>
+                </div>
+
+                <p id="result-bonus-breakdown" style="color:#4b5563;margin:4px 0">이벤트 +0점 · 전신 +0점</p>
+                <p id="result-elapsed-time" style="color:#0369a1;margin:4px 0 12px;font-weight:bold">소요 시간 00:00</p>
+                <div id="result-sync-status" class="sync-badge-box" style="margin-bottom: 16px;">점수 저장 확인 중...</div>
+
+                <div id="shots-gallery-box" style="display:none;margin:0 0 14px;padding:12px;border:2px solid #fb7a14;border-radius:12px;background:#fff7e6;color:#4a2c00;text-align:left;font-size:.9rem"><strong>내 미션 사진</strong><p style="margin:6px 0">카메라 영상과 코 장식·관절 표시가 함께 담긴 사진이에요. 사진은 고르기 전까지 이 기기 메모리에만 있어요. 'QR로 받기'를 누른 사진만 서버로 보내져요. 고른 사진만 이 기기에 저장하거나 QR로 받을 수 있어요.</p><div id="shots-gallery-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px"></div><button id="shots-download-btn" type="button" style="width:100%;margin-top:10px;padding:10px;border:0;border-radius:10px;background:#fb7a14;color:#fff;font-weight:700">선택한 사진 저장</button><p id="shots-msg" style="margin:6px 0 0;font-size:.8rem"></p></div>
+                
+                <button id="retry-btn" class="btn-cta">다시 도전하기 🔄</button>
+            </div>
+
+            <!-- 결과 화면 전용 랭킹 마운트 -->
+            <div id="leaderboard-result" class="leaderboard-mount-box"></div>
+        </div>
+        <footer class="global-footer">
+            <a class="footer-book-link" href="https://vibecoding25.notion.site/" target="_blank" rel="noopener noreferrer" aria-label="교사와 학부모를 위한 바이브 코딩 도서 자료 (새 창)"><img src="assets-book-cover.jpg" alt="책 표지" width="16" height="22" decoding="async"></a>Copyright ⓒ math-tong All right reserved
+        </footer>
+    </div>
+
+    <!-- 기존 참조 호환용 숨김 엘리먼트 (스크립트 오류 방지용) -->
+    <div class="legacy-hidden-element">
+        <button id="cam-start-btn"></button>
+        <button id="cam-stop-btn"></button>
+        <button id="prev-btn"></button>
+        <button id="next-btn"></button>
+    </div>
+
+</div>
+
+<dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title">
+    <div class="guide-shell">
+        <header class="guide-header"><strong id="guide-title">🤪 포즈 챌린지 사용 매뉴얼</strong><button id="guide-close-btn" type="button">앱으로 가기 ✕</button></header>
+        <div id="guide-body" class="guide-body"><article id="guide-page" class="guide-page" aria-live="polite"></article></div>
+        <footer class="guide-footer">
+            <div id="guide-dots" class="guide-dots" aria-label="매뉴얼 페이지 선택"></div>
+            <nav class="guide-navigation" aria-label="매뉴얼 페이지 이동"><button id="guide-prev" type="button">← 이전</button><span id="guide-position" aria-live="polite"></span><button id="guide-next" type="button">다음 →</button></nav>
+            <button id="guide-practice-btn" class="practice-entry" type="button">📷 이 포즈 전체 화면 연습</button><p>연습 기록은 랭킹에 저장되지 않아요</p>
+        </footer>
+    </div>
+</dialog>
+
+<script src="./sheets-sync.js?v=20261113-fe1"></script>
+<script>
+// 7가지 포즈 목록 및 모드 정의
+const poses = [
+    { id: "big_v", name: "큰 V", src: "photos-big-v-v2.png", type: "pose" },
+    { id: "heart", name: "머리 위 하트", src: "photos-heart-v2.png", type: "pose" },
+    { id: "victory", name: "한손 브이", src: "photos-victory-v2.png", type: "gesture", gesture: "Victory" },
+    { id: "thumb_up", name: "엄지척", src: "photos-thumb-up-v2.png", type: "gesture", gesture: "Thumb_Up" },
+    { id: "flower", name: "양손 꽃피우기", mission: "꽃받침", src: "photos-flower-v2.png", type: "hybrid" },
+    { id: "hero", name: "슈퍼히어로", src: "photos-hero-v2.png", type: "pose" },
+    { id: "dab", name: "양손 권총", mission: "가벼운 댑", src: "photos-gun-v3.png", type: "hybrid" },
+    { id: "body_bonus", name: "전신 보너스", type: "bonus" }
+];
+
+// 게임 진행 상태 변수
+let clearedPoses = new Array(poses.length).fill(false);
+let currentPoseIndex = 0;
+let totalScore = 0;
+
+// 카메라 스트림 및 생명주기 세대 번호 (Generation Token)
+
+
+// MediaPipe 모델 및 추론 상태
+let poseLandmarker = null;
+let gestureRecognizer = null;
+let modelLoadingPromise = null;
+let animationFrameId = null;
+let lastVideoTime = -1;
+
+// 정밀 시간 누적 변수
+let lastFrameTimestamp = null;
+let accumulatedHoldMs = 0;
+const REQUIRED_HOLD_MS = 2000;
+const MAX_DELTA_TOLERANCE_MS = 250;
+const MIN_CONFIDENCE = 0.55;
+
+// DOM 요소 참조
+const startScreen = document.getElementById('start-screen');
+const gameScreen = document.getElementById('game-screen');
+const nicknameInput = document.getElementById('nickname-input');
+const startBtn = document.getElementById('start-btn');
+const playerTag = document.getElementById('player-tag');
+const stepBadge = document.getElementById('step-badge');
+const scoreText = document.getElementById('score-text');
+const poseTitle = document.getElementById('pose-title');
+const poseImg = document.getElementById('pose-img');
+const webcam = document.getElementById('webcam');
+const camStatus = document.getElementById('cam-status');
+const progressFill = document.getElementById('progress-fill');
+const holdText = document.getElementById('hold-text');
+const statusBanner = document.getElementById('status-banner');
+const camStartBtn = document.getElementById('cam-start-btn');
+const camStopBtn = document.getElementById('cam-stop-btn');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        handleAppDeactivation();
+    } else {
+        if (localStream && !animationFrameId) {
+            lastFrameTimestamp = null;
+            lastVideoTime = -1;
+            animationFrameId = requestAnimationFrame(predictWebcam);
+        }
+    }
+});
+
+window.addEventListener('pagehide', () => {
+    handleAppDeactivation();
+    stopCamera();
+});
+
+// 관절 유효성 검증 함수 (finite, 화면 범위 [0, 1], 신뢰도)
+// MediaPipe 모델 단일 Promise 로더 (GPU 실패 시 CPU 폴백)
+async function initAIModels() {
+    if (poseLandmarker && gestureRecognizer) return true;
+    if (modelLoadingPromise) return modelLoadingPromise;
+
+    modelLoadingPromise = (async () => {
+        statusBanner.innerText = "AI 인식 모델을 준비하는 중입니다...";
+        camStatus.innerText = "AI 모델 로딩 중...";
+
+        if (!window.MP_FilesetResolver) {
+            await new Promise(resolve => window.addEventListener('mediapipe-ready', resolve, { once: true }));
+        }
+
+        const vision = await window.MP_FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+        );
+
+        const tryCreatePipeline = async (delegateType) => {
+            let createdPose = null;
+            try {
+                createdPose = await window.MP_PoseLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+                        delegate: delegateType
+                    },
+                    runningMode: "VIDEO",
+                    numPoses: 1
+                });
+
+                const createdGesture = await window.MP_GestureRecognizer.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+                        delegate: delegateType
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 2
+                });
+
+                return { pose: createdPose, gesture: createdGesture };
+            } catch (err) {
+                if (createdPose && typeof createdPose.close === 'function') {
+                    try {
+                        createdPose.close();
+                    } catch (closeErr) {
+                        console.warn("Pose 인스턴스 해제 중 예외:", closeErr);
+                    }
+                }
+                throw err;
+            }
+        };
+
+        try {
+            const models = await tryCreatePipeline("GPU");
+            poseLandmarker = models.pose;
+            gestureRecognizer = models.gesture;
+        } catch (gpuError) {
+            console.warn("GPU 대리자 초기화 실패, CPU 모드로 재시도합니다:", gpuError);
+            statusBanner.innerText = "GPU 가속 불가로 CPU 모드로 전환 중입니다...";
+            const models = await tryCreatePipeline("CPU");
+            poseLandmarker = models.pose;
+            gestureRecognizer = models.gesture;
+        }
+
+        statusBanner.innerText = "모델 준비 완료! 카메라를 시작할 수 있습니다.";
+        camStatus.innerText = "카메라 시작 버튼을 눌러주세요.";
+        return true;
+    })().catch(err => {
+        console.error("AI 모델 로딩 최종 실패:", err);
+        modelLoadingPromise = null;
+        statusBanner.innerText = "AI 모델 로딩 실패. 네트워크 환경을 확인해 주세요.";
+        camStatus.innerText = "AI 모델 로드 실패";
+        return false;
+    });
+
+    return modelLoadingPromise;
+}
+
+// 7대 포즈 판정 로직
+// 1. 관절 랜드마크 유효성 검사 (정규화 좌표 및 visibility 신뢰도 검증)
+function isValidPoint(pt) {
+    if (!pt) return false;
+    if (typeof pt.x !== 'number' || typeof pt.y !== 'number' || typeof pt.visibility !== 'number') {
+        return false;
+    }
+    if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y) || !Number.isFinite(pt.visibility)) {
+        return false;
+    }
+    if (pt.x < 0.0 || pt.x > 1.0 || pt.y < 0.0 || pt.y > 1.0) {
+        return false;
+    }
+    if (pt.visibility < MIN_CONFIDENCE) {
+        return false;
+    }
+    return true;
+}
+
+// 2. 손 랜드마크 21개 유효성 검사 (손 좌표는 visibility 검사 제외, finite 및 0~1 범위만 검증)
+function isValidHandLandmarks(handPoints) {
+    if (!handPoints || !Array.isArray(handPoints) || handPoints.length !== 21) {
+        return false;
+    }
+    for (let i = 0; i < 21; i++) {
+        const pt = handPoints[i];
+        if (!pt || typeof pt.x !== 'number' || typeof pt.y !== 'number') {
+            return false;
+        }
+        if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) {
+            return false;
+        }
+        if (pt.x < 0.0 || pt.x > 1.0 || pt.y < 0.0 || pt.y > 1.0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 3. 실제 픽셀 종횡비(videoWidth, videoHeight)를 반영한 2D 각도 계산 (B가 꼭짓점)
+function calculateAngle(A, B, C) {
+    const w = (webcam && webcam.videoWidth) ? webcam.videoWidth : 640;
+    const h = (webcam && webcam.videoHeight) ? webcam.videoHeight : 480;
+
+    const v1x = (A.x - B.x) * w;
+    const v1y = (A.y - B.y) * h;
+    const v2x = (C.x - B.x) * w;
+    const v2y = (C.y - B.y) * h;
+
+    const dot = v1x * v2x + v1y * v2y;
+    const mag1 = Math.hypot(v1x, v1y);
+    const mag2 = Math.hypot(v2x, v2y);
+
+    if (mag1 === 0 || mag2 === 0) return 0;
+
+    let cosTheta = dot / (mag1 * mag2);
+    cosTheta = Math.max(-1.0, Math.min(1.0, cosTheta));
+    return (Math.acos(cosTheta) * 180) / Math.PI;
+}
+
+// 4. 단일 손 제스처 판별 (한손 브이, 엄지척)
+function checkGestureMatches(targetGestureName, gestureResults) {
+    if (!gestureResults || !gestureResults.gestures || !gestureResults.landmarks) {
+        return false;
+    }
+
+    const gestures = gestureResults.gestures;
+    const allHandLandmarks = gestureResults.landmarks;
+
+    for (let i = 0; i < gestures.length; i++) {
+        const handGestures = gestures[i];
+        const handPoints = allHandLandmarks[i];
+
+        if (handGestures && handGestures.length > 0 && isValidHandLandmarks(handPoints)) {
+            const topGesture = handGestures[0];
+            if (topGesture.categoryName === targetGestureName && topGesture.score >= 0.6) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// 5. 7대 포즈 종합 판별 (큰 V, 머리 위 하트, 꽃받침, 슈퍼히어로, 양손 권총)
+// 양손 권총(한발 들기): 랭킹 열 이름은 기존 "가벼운 댑"을 그대로 사용(표시 이름만 변경)
+// 양손 권총(한발 들기) 판정: 몸(PoseLandmarker) + 손 21점(GestureRecognizer) 기하. 좌우 대칭, 몸 틀어도 가능.
+function gunHandOk(h) {
+    if (!h || h.length < 21) return false;
+    const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const palm = d(h[0], h[5]);
+    if (palm < 0.015) return false;
+    const indexOut = d(h[0], h[8]) > palm * 1.6;
+    const mid = d(h[0], h[12]) < palm * 1.45;
+    const ring = d(h[0], h[16]) < palm * 1.4;
+    const pinky = d(h[0], h[20]) < palm * 1.35;
+    const thumbOut = d(h[4], h[9]) > palm * 0.55;
+    return indexOut && mid && ring && pinky && thumbOut;
+}
+function checkFingerGun(lm, gestureResults) {
+    const P = i => lm[i];
+    const need = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+    for (const i of need) { const p = P(i); if (!p || !(p.x >= -0.2 && p.x <= 1.2 && p.y >= -0.2 && p.y <= 1.2) || (p.visibility !== undefined && p.visibility < 0.4)) return false; }
+    const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const shY = (P(11).y + P(12).y) / 2, hipY = (P(23).y + P(24).y) / 2;
+    const torso = hipY - shY;
+    if (torso < 0.08) return false;
+    // 1) 한쪽 무릎을 들고 발도 들림, 반대 다리는 딛고 있음
+    const kL = P(25), kR = P(26), aL = P(27), aR = P(28);
+    const lowK = kL.y > kR.y ? kL : kR, highK = kL.y > kR.y ? kR : kL;
+    const lowA = aL.y > aR.y ? aL : aR, highA = aL.y > aR.y ? aR : aL;
+    const thigh = lowK.y - hipY;
+    if (thigh < 0.08) return false;
+    const kneeUp = highK.y < hipY + thigh * 0.5;
+    const footUp = lowA.y - highA.y > thigh * 0.5;
+    if (!kneeUp || !footUp) return false;
+    // 2) 양팔을 앞/사선으로 곧게 뻗음 (어깨 폭이 아닌 몸통 길이로 비교해 몸을 틀어도 통과)
+    const ang = (a, b, c) => { const v1 = {x: a.x - b.x, y: a.y - b.y}, v2 = {x: c.x - b.x, y: c.y - b.y}; const m = Math.hypot(v1.x, v1.y) * Math.hypot(v2.x, v2.y); if (!m) return 0; return Math.acos(Math.max(-1, Math.min(1, (v1.x * v2.x + v1.y * v2.y) / m))) * 180 / Math.PI; };
+    const armL = ang(P(11), P(13), P(15)) >= 120 && d(P(11), P(15)) >= torso * 0.55;
+    const armR = ang(P(12), P(14), P(16)) >= 120 && d(P(12), P(16)) >= torso * 0.55;
+    if (!armL || !armR) return false;
+    if (P(15).y > hipY || P(16).y > hipY) return false;
+    // 3) 양손 모두 권총 모양이고 각 손이 몸의 손목과 가까운 손일 것
+    if (!gestureResults || !gestureResults.landmarks || gestureResults.landmarks.length < 2) return false;
+    const hands = gestureResults.landmarks.filter(gunHandOk);
+    const near = w => hands.some(h => d(h[0], w) < Math.max(0.1, torso * 0.45));
+    const usedA = hands.filter(h => d(h[0], P(15)) < Math.max(0.1, torso * 0.45));
+    const usedB = hands.filter(h => d(h[0], P(16)) < Math.max(0.1, torso * 0.45));
+    return usedA.length > 0 && usedB.length > 0 && !(usedA.length === 1 && usedB.length === 1 && usedA[0] === usedB[0]);
+}
+
+function checkPoseMatches(targetId, lm, gestureResults) {
+    if (targetId === "dab") return checkFingerGun(lm, gestureResults);
+    const nose = lm[0];
+    const lSh = lm[11], rSh = lm[12];
+    const lEl = lm[13], rEl = lm[14];
+    const lWr = lm[15], rWr = lm[16];
+    const lHip = lm[23], rHip = lm[24];
+
+    // 포즈 판별 공통 필수 관절 유효성 검증
+    const requiredPoints = [nose, lSh, rSh, lEl, rEl, lWr, rWr];
+    for (let i = 0; i < requiredPoints.length; i++) {
+        if (!isValidPoint(requiredPoints[i])) return false;
+    }
+
+    const shoulderY = (lSh.y + rSh.y) / 2;
+    const shoulderWidth = Math.hypot(lSh.x - rSh.x, lSh.y - rSh.y);
+    if (shoulderWidth < 0.05) return false;
+
+    // 팔꿈치 픽셀 각도
+    const leftElbowAngle = calculateAngle(lSh, lEl, lWr);
+    const rightElbowAngle = calculateAngle(rSh, rEl, rWr);
+
+    switch (targetId) {
+        case "big_v": {
+            const handsAboveHead = lWr.y < nose.y && rWr.y < nose.y;
+            const armsStraight = leftElbowAngle >= 135 && rightElbowAngle >= 135;
+            const handsWide = Math.abs(lWr.x - rWr.x) > shoulderWidth * 1.35;
+            return handsAboveHead && armsStraight && handsWide;
+        }
+
+        case "heart": {
+            const handsAboveNose = lWr.y < nose.y && rWr.y < nose.y;
+            const armsBent = leftElbowAngle >= 45 && leftElbowAngle <= 125 &&
+                             rightElbowAngle >= 45 && rightElbowAngle <= 125;
+            const handsClose = Math.abs(lWr.x - rWr.x) < shoulderWidth * 0.95;
+            return handsAboveNose && armsBent && handsClose;
+        }
+
+        case "flower": {
+            // 1) 신체 관절 기하 조건 (손목이 턱/볼 높이 및 어깨 위)
+            const nearFaceY = Math.abs(lWr.y - nose.y) < 0.22 && Math.abs(rWr.y - nose.y) < 0.22;
+            const nearChinX = Math.abs(lWr.x - nose.x) < shoulderWidth * 0.9 &&
+                              Math.abs(rWr.x - nose.x) < shoulderWidth * 0.9;
+            const handsAboveShoulders = lWr.y < shoulderY && rWr.y < shoulderY;
+            if (!nearFaceY || !nearChinX || !handsAboveShoulders) {
+                return false;
+            }
+
+            // 2) 제스처 인식 결과 확인 (2개 이상의 유효한 손과 Open_Palm)
+            if (!gestureResults || !gestureResults.gestures || !gestureResults.landmarks) {
+                return false;
+            }
+
+            const validPalms = [];
+            for (let i = 0; i < gestureResults.gestures.length; i++) {
+                const handGestures = gestureResults.gestures[i];
+                const handPoints = gestureResults.landmarks[i];
+
+                if (handGestures && handGestures.length > 0 && isValidHandLandmarks(handPoints)) {
+                    const topGesture = handGestures[0];
+                    if (topGesture.categoryName === "Open_Palm" && topGesture.score >= 0.5) {
+                        validPalms.push({
+                            wrist: handPoints[0] // 손의 0번 랜드마크(손목)
+                        });
+                    }
+                }
+            }
+
+            if (validPalms.length < 2) {
+                return false;
+            }
+
+            // 3) 각 손의 손목0번이 얼굴 양옆(코 기준 좌우 분할)에 위치하는지 검사
+            const handA = validPalms[0].wrist;
+            const handB = validPalms[1].wrist;
+            const isSeparatedAcrossNose = (handA.x < nose.x && handB.x > nose.x) || (handA.x > nose.x && handB.x < nose.x);
+            if (!isSeparatedAcrossNose) {
+                return false;
+            }
+
+            // 4) 각 손의 손목0번이 서로 다른 Pose 손목(15번, 16번)과 근접한지 검사
+            const pixelDistance = (a, b) => Math.hypot((a.x - b.x) * (webcam.videoWidth || 640), (a.y - b.y) * (webcam.videoHeight || 480));
+            const maxWristDist = pixelDistance(lSh, rSh) * 0.7;
+            const distAtoL = pixelDistance(handA, lWr);
+            const distBtoR = pixelDistance(handB, rWr);
+            const pair1 = (distAtoL < maxWristDist && distBtoR < maxWristDist);
+
+            const distAtoR = pixelDistance(handA, rWr);
+            const distBtoL = pixelDistance(handB, lWr);
+            const pair2 = (distAtoR < maxWristDist && distBtoL < maxWristDist);
+
+            return pair1 || pair2;
+        }
+
+        case "hero": {
+            if (!isValidPoint(lHip) || !isValidPoint(rHip)) return false;
+            const hipY = (lHip.y + rHip.y) / 2;
+
+            const isLeftArmRaised = lWr.y < nose.y && Math.abs(lWr.x - lSh.x) > shoulderWidth * 0.4 && leftElbowAngle >= 120;
+            const isRightHandOnWaist = Math.abs(rWr.y - hipY) < 0.22 && Math.abs(rWr.x - rSh.x) < shoulderWidth * 0.95;
+
+            const isRightArmRaised = rWr.y < nose.y && Math.abs(rWr.x - rSh.x) > shoulderWidth * 0.4 && rightElbowAngle >= 120;
+            const isLeftHandOnWaist = Math.abs(lWr.y - hipY) < 0.22 && Math.abs(lWr.x - lSh.x) < shoulderWidth * 0.95;
+
+            return (isLeftArmRaised && isRightHandOnWaist) || (isRightArmRaised && isLeftHandOnWaist);
+        }
+
+        default:
+            return false;
+    }
+}
+
+// 카메라 시작: 세대 번호 토큰 검증 및 모델 성공 후 getUserMedia 요청
+// 카메라 라이프사이클 및 대기 취소 관리를 위한 상태 변수
+let cameraGeneration = 0;
+let localStream = null;
+let isStartingCamera = false;
+let cameraAbortController = null;
+
+// 카메라 시작: 세대 검증, getUserMedia 즉시 localStream 등록, AbortController 기반 대기 취소
+async function startCamera() {
+    if (isStartingCamera || localStream) return;
+    isStartingCamera = true;
+
+    const thisGen = ++cameraGeneration;
+
+    // 이전 대기 작업이 남아있다면 취소 후 새로 생성
+    if (cameraAbortController) {
+        cameraAbortController.abort();
+    }
+    cameraAbortController = new AbortController();
+    const currentSignal = cameraAbortController.signal;
+
+    camStartBtn.disabled = true;
+    camStopBtn.disabled = false;
+    camStatus.innerText = "AI 모델 및 카메라 준비 중입니다...";
+
+    let requestStream = null;
+
+    try {
+        const isModelReady = await initAIModels();
+
+        // 모델 로드 직후 세대 확인 (대기 중 stopCamera 호출 시 조기 반환)
+        if (thisGen !== cameraGeneration || currentSignal.aborted) {
+            return;
+        }
+
+        if (!isModelReady) {
+            camStatus.style.display = 'block';
+            camStatus.innerText = "AI 모델을 불러오지 못했습니다.";
+            statusBanner.innerText = "모델 준비에 실패했습니다. 다시 시도해 주세요.";
+            camStartBtn.disabled = false;
+            camStopBtn.disabled = true;
+            return;
+        }
+
+        // 세로 화면이면 세로(높이>너비) 영상을 우선 요청하고, 실제로 받은 영상이 가로면 다른 제약으로 다시 시도
+        {
+            const portraitStage = window.innerHeight >= window.innerWidth;
+            const ladder = portraitStage ? [
+                { width: { ideal: 720 }, height: { ideal: 1280 }, aspectRatio: { exact: 9 / 16 }, facingMode: "user" },
+                { width: { ideal: 960 }, height: { ideal: 1280 }, aspectRatio: { exact: 3 / 4 }, facingMode: "user" },
+                // 가로 영상만 주는 기기(예: 가로가 기본인 태블릿): 16:9보다 위아래 시야가 넓은 4:3을 우선 요청
+                { width: { ideal: 1280 }, height: { ideal: 960 }, aspectRatio: { ideal: 4 / 3 }, facingMode: "user" },
+                { width: { ideal: 720 }, height: { ideal: 1280 }, aspectRatio: { ideal: 9 / 16 }, facingMode: "user" }
+            ] : [
+                { width: { ideal: 1280 }, height: { ideal: 720 }, aspectRatio: { ideal: 16 / 9 }, facingMode: "user" }
+            ];
+            let lastErr = null;
+            for (let k = 0; k < ladder.length; k++) {
+                let s = null;
+                try {
+                    s = await navigator.mediaDevices.getUserMedia({ video: ladder[k], audio: false });
+                } catch (e) {
+                    lastErr = e;
+                    if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) throw e;
+                    continue;
+                }
+                const st = s.getVideoTracks()[0] ? s.getVideoTracks()[0].getSettings() : {};
+                const okOrientation = !portraitStage || !st.width || !st.height || st.height >= st.width || (k === 2 && st.width / st.height <= 1.4);
+                if (okOrientation || k === ladder.length - 1) { requestStream = s; window.__camSettings = st; break; }
+                s.getTracks().forEach(t => t.stop());
+            }
+            if (!requestStream) throw lastErr || new Error("camera unavailable");
+        }
+
+        // getUserMedia 직후 세대 검사: 만약 이미 세대가 변경되었다면 이 요청의 스트림만 즉시 해제
+        if (thisGen !== cameraGeneration || currentSignal.aborted) {
+            requestStream.getTracks().forEach(track => track.stop());
+            return;
+        }
+
+        // 현재 세대이면 즉시 localStream에 등록하여 stopCamera가 즉시 소유 및 종료할 수 있도록 보장
+        localStream = requestStream;
+        webcam.srcObject = requestStream;
+
+        // 트랙 예기치 못한 하드웨어 종료 리스너 등록
+        requestStream.getVideoTracks().forEach(track => {
+            track.addEventListener('ended', () => {
+                if (thisGen === cameraGeneration) {
+                    stopCamera();
+                    camStatus.innerText = "카메라 장치 연결이 종료되었습니다.";
+                }
+            });
+        });
+
+        // loadeddata 대기 및 abort 시 리스너·Promise 즉시 해제
+        await new Promise((resolve, reject) => {
+            if (webcam.readyState >= 2) {
+                resolve();
+                return;
+            }
+
+            const onLoadedData = () => {
+                currentSignal.removeEventListener('abort', onAbort);
+                resolve();
+            };
+
+            const onAbort = () => {
+                webcam.removeEventListener('loadeddata', onLoadedData);
+                reject(new DOMException("Camera start aborted", "AbortError"));
+            };
+
+            webcam.addEventListener('loadeddata', onLoadedData, { once: true });
+            currentSignal.addEventListener('abort', onAbort, { once: true });
+        });
+
+        // 비디오 데이터 대기 직후 세대 확인
+        if (thisGen !== cameraGeneration || currentSignal.aborted) {
+            return;
+        }
+
+        // play() 실행
+        try {
+            await webcam.play();
+        } catch (playErr) {
+            // 오래된 요청이면 아무것도 건드리지 않고 반환
+            if (thisGen !== cameraGeneration) {
+                return;
+            }
+
+            console.error("비디오 재생 실패:", playErr);
+            if (requestStream) {
+                requestStream.getTracks().forEach(track => track.stop());
+            }
+            if (localStream === requestStream) {
+                localStream = null;
+            }
+            webcam.srcObject = null;
+            throw playErr;
+        }
+
+        // play() 직후 세대 재검증
+        if (thisGen !== cameraGeneration || currentSignal.aborted) {
+            return;
+        }
+
+        // 최종 활성화 완료 처리
+        webcam.style.display = 'block';
+        camStatus.style.display = 'none';
+
+        resetHoldTimer();
+        lastVideoTime = -1;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        animationFrameId = requestAnimationFrame(predictWebcam);
+
+    } catch (err) {
+        // 취소(AbortError)된 경우 에러 로그 생략
+        if (err.name !== "AbortError") {
+            console.error("카메라 시작 에러:", err);
+        }
+
+        // 오래된 요청은 새 요청 상태를 건드리지 않고 자기 스트림만 닫음
+        if (thisGen !== cameraGeneration) {
+            if (requestStream) {
+                requestStream.getTracks().forEach(track => track.stop());
+            }
+            return;
+        }
+
+        // 현재 요청이 실패한 경우 스트림 해제 및 재시도 가능 상태로 복원
+        if (requestStream) {
+            requestStream.getTracks().forEach(track => track.stop());
+        }
+        if (localStream === requestStream) {
+            localStream = null;
+        }
+        webcam.srcObject = null;
+
+        camStatus.style.display = 'block';
+        camStatus.innerText = "카메라를 시작할 수 없습니다.\n권한과 장치 연결을 확인해 주세요.";
+        statusBanner.innerText = "카메라 접근 권한이 필요합니다.";
+        camStartBtn.disabled = false;
+        camStopBtn.disabled = true;
+    } finally {
+        if (thisGen === cameraGeneration) {
+            isStartingCamera = false;
+        }
+    }
+}
+
+// 카메라 종료: 세대 번호 즉시 증가, 대기 취소(abort), 준비 중/재생 중 스트림 점유 즉시 해제
+function stopCamera() {
+    cameraGeneration++;
+    isStartingCamera = false;
+
+    // 대기 중인 loadeddata/Promise 즉시 취소
+    if (cameraAbortController) {
+        cameraAbortController.abort();
+        cameraAbortController = null;
+    }
+
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
+    // 이미 열려 있거나 준비 중 등록된 스트림 즉시 정지
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+
+    webcam.pause();
+    webcam.srcObject = null;
+    webcam.style.display = 'none';
+    camStatus.style.display = 'block';
+    camStatus.innerText = "카메라가 꺼졌습니다.";
+
+    camStartBtn.disabled = false;
+    camStopBtn.disabled = true;
+    resetHoldTimer("카메라가 종료되었습니다.");
+}
+
+// ESM 모듈 로드 알림 수신 시 모델 사전 로드 시도
+window.addEventListener('mediapipe-ready', () => {
+    initAIModels();
+});
+</script>
+<script src="./experience.js?v=20261113-fe1"></script>
+<script src="./festa.js?v=20261113-fe1"></script>
+<script src="./guide.js?v=20261009-37"></script>
+</body>
+</html>
