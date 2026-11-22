@@ -6,7 +6,7 @@
  * Ranking is mounted and polled only on the result screen; saving remains independent.
  */
 (function() {
-    let SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxGHkoOwKz0aFtjzZoAROonq3AeXHBnzqf22ubY1pguSans4OLTxC6I7Y9tth8t6EsOGw/exec"; // 페스타 전용 랭킹(새 시트, 원본 랭킹과 별개)
+    let SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwPuE_9SvtjrbsoFlbPgeOCb_7JLWmmyePGTJR4L9leDpeRVRQ40hbHDJTTB0y7UVdq/exec"; // 페스타 전용 랭킹(새 시트, 원본 랭킹과 별개)
 
     const VALID_MISSIONS = [
         "큰 V",
