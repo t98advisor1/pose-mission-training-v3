@@ -22,8 +22,12 @@
     const displayMission = mission => mission === "꽃받침" ? "양손 꽃피우기" : (mission === "가벼운 댑" ? "양손 권총" : mission);
     const BODY_KEY = "__full_body_bonus__";
     const isBodyMission = mission => BODY_MISSIONS.includes(mission);
-    const isValidMission = mission => VALID_MISSIONS.includes(mission) || isBodyMission(mission);
-    const canonicalMissionKey = mission => isBodyMission(mission) ? BODY_KEY : mission;
+    // 2026-11-25: 패스 기록 (사용자 승인 12:47 👍 / 12:48 0점 테스트 지시)
+    const PASS_PREFIX = "패스 ";
+    const passMissionName = mission => (typeof mission === "string" && mission.indexOf(PASS_PREFIX) === 0) ? mission.slice(PASS_PREFIX.length).trim() : "";
+    const isPassMission = mission => VALID_MISSIONS.includes(passMissionName(mission));
+    const isValidMission = mission => VALID_MISSIONS.includes(mission) || isBodyMission(mission) || isPassMission(mission);
+    const canonicalMissionKey = mission => isBodyMission(mission) ? BODY_KEY : (isPassMission(mission) ? passMissionName(mission) : mission);
     const sameMissionTrack = (first, second) => canonicalMissionKey(first) === canonicalMissionKey(second);
     const bodyGrade = mission => isBodyMission(mission) ? Number(mission.slice("전신 보너스 ".length)) : 0;
     const bodyMissionForScore = score => score > 0 ? `전신 보너스 ${score}` : null;
@@ -44,7 +48,7 @@
         if (baseScore < 0 || baseScore > 700 || baseScore % 100 !== 0) return null;
         if (eventBonusScore < 0 || eventBonusScore > 210 || eventBonusScore % 10 !== 0 || eventBonusScore > baseScore / 100 * 30) return null;
         if (bodyBonusScore !== 0 && !BODY_GRADES.includes(bodyBonusScore)) return null;
-        if (bodyBonusScore > 0 && (!hasEvent || baseScore !== 700)) return null;
+        if (bodyBonusScore > 0 && !hasEvent) return null;
         if (bonusScore < 0 || bonusScore > 910 || bonusScore !== eventBonusScore + bodyBonusScore) return null;
         if (totalScore < 0 || totalScore > 1610 || totalScore !== baseScore + bonusScore) return null;
         return { baseScore, bonusScore, eventBonusScore, bodyBonusScore, totalScore };
@@ -67,11 +71,17 @@
         const scores = normalizeScores(receipt);
         if (!scores) return null;
         const completedBody = receipt.completedMissions.filter(isBodyMission);
+        const passedInReceipt = Array.isArray(receipt.passedMissions) ? receipt.passedMissions.filter(name => VALID_MISSIONS.includes(name)) : [];
         if (scores.bodyBonusScore > 0) {
             const actualMission = bodyMissionForScore(scores.bodyBonusScore);
-            if (completedBody.length !== 1 || completedBody[0] !== actualMission || !VALID_MISSIONS.every(name => receipt.completedMissions.includes(name))) return null;
+            const allFinished = VALID_MISSIONS.every(name => receipt.completedMissions.includes(name) || passedInReceipt.includes(name));
+            if (completedBody.length !== 1 || completedBody[0] !== actualMission || !allFinished) return null;
         } else if (completedBody.length) {
             return null;
+        }
+        if (isPassMission(mission)) {
+            if (receipt.mission !== mission || !passedInReceipt.includes(passMissionName(mission))) return null;
+            return scores;
         }
         if (isBodyMission(mission)) {
             if (!isBodyMission(receipt.mission) || scores.bodyBonusScore <= 0) return null;
@@ -92,6 +102,7 @@
     let currentNickname = null;
     let syncQueue = []; // [{ challengeId, nickname, mission }]
     let currentCompletedMissions = new Set();
+    let currentPassedMissions = new Set();
     let currentConfirmedScores = emptyScores();
     let currentScreen = "start"; // "start" | "game" | "result"
     let isProcessingQueue = false;
@@ -138,6 +149,7 @@
                 nickname: currentNickname,
                 queue: syncQueue,
                 completedMissions: Array.from(currentCompletedMissions),
+                passedMissions: Array.from(currentPassedMissions),
                 confirmedScores: currentConfirmedScores
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -166,14 +178,23 @@
                     }).map(item => ({ challengeId: item.challengeId, nickname: item.nickname, mission: item.mission }));
                 }
                 currentCompletedMissions = new Set();
+                currentPassedMissions = new Set();
+                if (Array.isArray(parsed.passedMissions)) {
+                    parsed.passedMissions.forEach(mission => {
+                        if (VALID_MISSIONS.includes(mission) && !hasCompletedTrack(mission)) currentPassedMissions.add(mission);
+                    });
+                }
                 if (Array.isArray(parsed.completedMissions)) {
                     parsed.completedMissions.forEach(mission => {
-                        if (isValidMission(mission) && !hasCompletedTrack(mission)) addCompletedMission(mission);
+                        if (isValidMission(mission) && !isPassMission(mission) && !hasCompletedTrack(mission)) addCompletedMission(mission);
                     });
                 }
                 if (currentChallengeId && Array.isArray(syncQueue)) {
                     syncQueue.forEach(item => {
-                        if (item.challengeId === currentChallengeId && !hasCompletedTrack(item.mission)) {
+                        if (item.challengeId !== currentChallengeId) return;
+                        if (isPassMission(item.mission)) {
+                            if (!hasCompletedTrack(item.mission)) currentPassedMissions.add(passMissionName(item.mission));
+                        } else if (!hasCompletedTrack(item.mission)) {
                             addCompletedMission(item.mission);
                         }
                     });
@@ -725,7 +746,9 @@
                     saveStorageState();
                 }
 
-                const savedLabel = isBodyMission(targetMission) ? `전신 보너스 ${confirmedScores.bodyBonusScore}점` : `${displayMission(targetMission)} (+100점)`;
+                const savedLabel = isBodyMission(targetMission)
+                    ? `전신 보너스 ${confirmedScores.bodyBonusScore}점`
+                    : (isPassMission(targetMission) ? `${displayMission(passMissionName(targetMission))} 패스 기록` : `${displayMission(targetMission)} (+100점)`);
                 updateSyncStatusUI(`'${savedLabel}' 시트 저장 완료!`, true);
 
                 if (currentScreen === "result") {
@@ -781,6 +804,7 @@
             currentChallengeId = generateUUID();
             currentNickname = nickname;
             currentCompletedMissions = new Set();
+            currentPassedMissions = new Set();
             currentConfirmedScores = emptyScores();
             saveStorageState();
 
@@ -817,7 +841,7 @@
             if (hasCompletedTrack(mission)) {
                 return { bonus: 0 };
             }
-            if (isBodyMission(mission) && currentConfirmedScores.baseScore !== 700 && !VALID_MISSIONS.every(name => currentCompletedMissions.has(name))) {
+            if (isBodyMission(mission) && !VALID_MISSIONS.every(name => currentCompletedMissions.has(name) || currentPassedMissions.has(name))) {
                 console.error("전신 보너스는 기본 7개 미션을 모두 마친 뒤에만 보낼 수 있습니다.");
                 return { bonus: 0 };
             }
@@ -845,6 +869,38 @@
             }
 
             return { bonus: bonusVal };
+        },
+
+        // 2026-11-25: 패스 기록 — 점수 없이 패스한 포즈를 서버에 남김 (사용자 승인 12:47/12:48)
+        recordPass: function(missionName) {
+            if (!currentChallengeId || !currentNickname) {
+                return { recorded: false };
+            }
+            const base = String(missionName || "").trim();
+            if (!VALID_MISSIONS.includes(base)) {
+                return { recorded: false };
+            }
+            if (hasCompletedTrack(base) || currentPassedMissions.has(base)) {
+                return { recorded: false };
+            }
+            currentPassedMissions.add(base);
+            const token = PASS_PREFIX + base;
+            const alreadyInQueue = syncQueue.some(
+                item => item.challengeId === currentChallengeId && sameMissionTrack(item.mission, token)
+            );
+            if (!alreadyInQueue) {
+                syncQueue.push({
+                    challengeId: currentChallengeId,
+                    nickname: currentNickname,
+                    mission: token
+                });
+            }
+            saveStorageState();
+            updateSyncStatusUI();
+            if (SHEETS_WEB_APP_URL) {
+                processQueue();
+            }
+            return { recorded: true };
         },
 
         setScreen: function(screenName) {
