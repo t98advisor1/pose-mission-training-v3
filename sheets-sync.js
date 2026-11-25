@@ -664,10 +664,7 @@
             updateSyncStatusUI();
             return;
         }
-        if (!(window.FestaOp && window.FestaOp.token())) {
-            updateSyncStatusUI("행사 진행자 로그인 전이라 점수가 아직 기록되지 않았어요");
-            return;
-        }
+        // 2026-11-25: 로그인 없이도 점수 전송 (사용자 지시). 운영자 토큰은 있으면 함께 보냄.
         isProcessingQueue = true;
 
         const targetItem = syncQueue[0];
@@ -683,7 +680,7 @@
                 challengeId: targetChallengeId,
                 nickname: targetNickname,
                 mission: targetMission,
-                ticket: window.FestaOp.token()
+                ticket: (window.FestaOp && window.FestaOp.token()) || ""
             });
 
             await fetch(SHEETS_WEB_APP_URL, {
