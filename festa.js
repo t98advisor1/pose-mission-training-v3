@@ -53,6 +53,7 @@
 
     async function sendQr() {
         const msg = $("shots-msg"), area = $("shots-qr-area");
+        const gen = window.__shotsResetGen || 0; // 2026-11-25: 업로드 응답이 늦어지는 사이 새 게임이 시작되면 이전 게임 QR을 새 화면에 그리지 않는다
         const picked = window.getPickedShots ? window.getPickedShots() : [];
                 if (!picked.length) { msg.textContent = "받을 사진을 먼저 선택해 주세요."; return; }
         if (!$("shots-consent").checked) { msg.textContent = "임시 저장 안내를 확인하고 체크해 주세요."; return; }
@@ -68,6 +69,7 @@
             if (!r.ok) { msg.textContent = "서버에 임시 저장하지 못했어요. 대신 '선택한 사진 저장'으로 이 기기에 저장해 주세요."; return; }
             const j = await r.json();
             await loadQr();
+            if ((window.__shotsResetGen || 0) !== gen) { msg.textContent = "새 게임이 시작되어 QR 만들기를 멈췄어요. 필요하면 다시 눌러 주세요."; return; }
             const q = qrcode(0, "M"); q.addData(j.url); q.make();
             area.innerHTML = '<div style="background:#fff;padding:8px;border-radius:10px;display:inline-block">' + q.createSvgTag(5) + '</div>';
             const p = document.createElement("p"); p.style.cssText = "font-size:.8rem;margin:6px 0 0;word-break:break-all"; p.textContent = "휴대폰 카메라로 QR을 찍으세요. " + (j.minutes || 20) + "분 동안만 받을 수 있어요."; area.appendChild(p);
