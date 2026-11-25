@@ -92,6 +92,8 @@ function augmentHandsForGun(video, lm, results, now) {
     let practiceStartCancel = null;
     let previewTimer = null;
     let successTransitionTimer = null;
+    // 2026-11-25: 포즈 패스(건너뛰기) — 세 번째 포즈부터 버튼 표시, 점수·서버 기록 없이 다음 미션으로 진행
+    let passedPoses = [];
     let bonusToastTimer = null;
     let isDecorEnabled = true; // 사슴뿔·빨간 공·볼터치 표시 토글 상태 (새 게임에도 유지)
 
@@ -705,7 +707,7 @@ function augmentHandsForGun(video, lm, results, now) {
     function getNextIncompletePoseIndex() {
         if (practiceMode) return currentPoseIndex;
         for (let i = 0; i < poses.length; i++) {
-            if (!clearedPoses[i]) return i;
+            if (!clearedPoses[i] && !passedPoses[i]) return i;
         }
         return -1;
     }
@@ -884,10 +886,44 @@ function augmentHandsForGun(video, lm, results, now) {
         }
     }
 
+    const passPoseBtn = document.getElementById("pass-pose-btn");
+    if (passPoseBtn) passPoseBtn.addEventListener("click", () => {
+        if (practiceMode) return;
+        if (!gameScreen || !gameScreen.classList.contains("active")) return;
+        if (currentPoseIndex < 2) return;
+        if (passedPoses[currentPoseIndex] || clearedPoses[currentPoseIndex]) return;
+        if (successTransitionTimer) { clearTimeout(successTransitionTimer); successTransitionTimer = null; }
+        passedPoses[currentPoseIndex] = true;
+        missionGeneration++;
+        window.resetHoldTimer();
+        closePosePreview();
+        const passedName = poses[currentPoseIndex].name;
+        if (statusBanner) {
+            statusBanner.className = "vision-hud-banner";
+            statusBanner.innerText = `⏭️ '${passedName}' 패스 (점수 없이 다음으로)`;
+        }
+        const nextIdx = getNextIncompletePoseIndex();
+        if (nextIdx !== -1) {
+            window.renderPoseView(nextIdx);
+        } else {
+            phase = "result";
+            window.stopCamera();
+            showResultScreen();
+        }
+    });
+
     window.renderPoseView = function(index) {
         currentPoseIndex = index;
+        updatePassPoseBtn();
         triggerPosePreview(currentPoseIndex);
     };
+
+    function updatePassPoseBtn() {
+        const btn = document.getElementById("pass-pose-btn");
+        if (!btn) return;
+        const show = !practiceMode && gameScreen && gameScreen.classList.contains("active") && currentPoseIndex >= 2 && phase !== "result";
+        btn.hidden = !show;
+    }
 
     function showBonusToast(bonusVal) {
         if (!bonusToast) return;
@@ -1100,7 +1136,12 @@ function augmentHandsForGun(video, lm, results, now) {
         setAppScreen("result");
         if (window.renderMissionShots) window.renderMissionShots();
         const nickname = (currentSession && currentSession.nickname) ? currentSession.nickname : "선생님";
-        if (resultUserSummary) resultUserSummary.innerText = `${nickname} 선생님, 7개 미션과 전신 보너스를 완료했습니다!`;
+        const clearedMissions = clearedPoses.slice(0, 7).filter(Boolean).length;
+        const bonusCleared = !!clearedPoses[7];
+        const passedCount = passedPoses.filter(Boolean).length;
+        if (resultUserSummary) resultUserSummary.innerText = passedCount > 0
+            ? `${nickname} 선생님, ${clearedMissions}개 미션 완료${bonusCleared ? " + 전신 보너스" : ""} · ${passedCount}개 패스`
+            : `${nickname} 선생님, 7개 미션과 전신 보너스를 완료했습니다!`;
         renderScoreNumbers();
         updateSyncStatusDisplay();
     }
@@ -1143,6 +1184,7 @@ function augmentHandsForGun(video, lm, results, now) {
         }
         practiceMode = enabled;
         gameScreen.classList.toggle("practice-mode", enabled);
+        updatePassPoseBtn();
         if (practiceControls) practiceControls.hidden = !enabled;
         if (enabled) {
             if (playerTag) playerTag.innerText = "예비 연습 · 기록 안 함";
@@ -1176,6 +1218,7 @@ function augmentHandsForGun(video, lm, results, now) {
         userPaused = false;
         clearMissionShots();
         clearedPoses = new Array(poses.length).fill(false);
+        passedPoses = new Array(poses.length).fill(false);
         totalScore = bonusScore = eventBonusScore = bodyBonusScore = 0;
         bodySubmitted = false;
         currentPoseIndex = practiceIndex(poseId);
@@ -1283,6 +1326,7 @@ function augmentHandsForGun(video, lm, results, now) {
         userPaused = false;
         clearMissionShots();
         clearedPoses = new Array(poses.length).fill(false);
+        passedPoses = new Array(poses.length).fill(false);
         totalScore = 0;
         bonusScore = 0;
         eventBonusScore = 0;
