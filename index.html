@@ -933,7 +933,7 @@ html, body {
                     <input type="text" id="nickname-input" class="text-input" placeholder="별명 (실명 금지, 최대 12자)" aria-label="닉네임" maxlength="12">
                 </div>
 
-                <button id="start-btn" class="btn-cta">게임 시작하기</button><p id="test-version-note" style="margin:8px 0 0;font-size:.85rem;color:#92400e;background:#fef3c7;border-radius:8px;padding:6px 10px">별명(실명 금지)과 성공 결과만 랭킹에 공개돼요. 점수 기록은 행사 진행자가 이 기기에서 로그인한 뒤에만 저장돼요. 카메라 영상은 서버로 보내지 않아요. 결과 화면에서 고른 사진만 직접 QR로 받을 수 있어요.</p><details style="margin-top:8px;font-size:.85rem"><summary>행사 진행자 로그인</summary><div style="margin-top:6px"><input type="password" id="op-pin" autocomplete="off" placeholder="운영자 비밀번호" style="padding:8px;border:1px solid #ccc;border-radius:8px"> <button type="button" id="op-login" style="padding:8px 12px;border:0;border-radius:8px;background:#444;color:#fff">로그인</button> <button type="button" id="op-logout" style="display:none;padding:8px 12px;border:0;border-radius:8px;background:#999;color:#fff">로그아웃</button><p id="op-state" style="margin:4px 0"></p><p id="op-msg" style="margin:0;color:#b00020"></p></div></details>
+                <button id="start-btn" class="btn-cta">게임 시작하기</button><p id="test-version-note" style="margin:8px 0 0;font-size:.85rem;color:#92400e;background:#fef3c7;border-radius:8px;padding:6px 10px">별명(실명 금지)과 성공 결과만 랭킹에 공개돼요. 점수는 별명으로 바로 저장돼요. 카메라 영상은 서버로 보내지 않아요. 결과 화면에서 고른 사진만 직접 QR로 받을 수 있어요.</p><details style="margin-top:8px;font-size:.85rem"><summary>행사 진행자 로그인</summary><div style="margin-top:6px"><input type="password" id="op-pin" autocomplete="off" placeholder="운영자 비밀번호" style="padding:8px;border:1px solid #ccc;border-radius:8px"> <button type="button" id="op-login" style="padding:8px 12px;border:0;border-radius:8px;background:#444;color:#fff">로그인</button> <button type="button" id="op-logout" style="display:none;padding:8px 12px;border:0;border-radius:8px;background:#999;color:#fff">로그아웃</button><p id="op-state" style="margin:4px 0"></p><p id="op-msg" style="margin:0;color:#b00020"></p></div></details>
                 </div>
 
                 <p class="home-privacy">
@@ -1099,7 +1099,7 @@ html, body {
     </div>
 </dialog>
 
-<script src="./sheets-sync.js?v=20261122-festa"></script>
+<script src="./sheets-sync.js?v=20261125-nologin"></script>
 <script>
 // 7가지 포즈 목록 및 모드 정의
 const poses = [
@@ -1720,7 +1720,7 @@ window.addEventListener('mediapipe-ready', () => {
 });
 </script>
 <script src="./experience.js?v=20261116-crop1"></script>
-<script src="./festa.js?v=20261113-fe1"></script>
+<script src="./festa.js?v=20261125-fe2"></script>
 <script src="./guide.js?v=20261009-37"></script>
 </body>
 </html>
