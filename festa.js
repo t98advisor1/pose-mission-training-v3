@@ -11,7 +11,7 @@
     function $(id) { return document.getElementById(id); }
     function refreshOpUI() {
         const on = !!token();
-        if ($("op-state")) $("op-state").textContent = on ? "운영자 로그인됨 (이 기기만, 최대 6시간)" : "로그인 전: 점수 기록은 꺼져 있어요 (사진 QR은 로그인 없이 가능)";
+        if ($("op-state")) $("op-state").textContent = on ? "운영자 로그인됨 (이 기기만, 최대 6시간)" : "로그인 전 (점수 기록·사진 QR 모두 로그인 없이 가능해요)";
         if ($("op-logout")) $("op-logout").style.display = on ? "inline-block" : "none";
         if ($("op-login")) $("op-login").style.display = on ? "none" : "inline-block";
         if ($("op-pin")) $("op-pin").style.display = on ? "none" : "inline-block";
