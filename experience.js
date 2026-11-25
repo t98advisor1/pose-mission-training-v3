@@ -317,7 +317,8 @@ function augmentHandsForGun(video, lm, results, now) {
 
             // 세로 화면 + 가로 카메라(아이폰 Safari 등)면 중앙을 화면 비율로 잘라 꽉 채운다.
             // 표시는 object-fit: cover(같은 중앙 자르기), 인식·사진은 잘라낸 프레임을 써서 좌표가 어긋나지 않게 한다.
-            camCropMode = stageH > stageW && videoW > videoH;
+            // 2026-11-25: 카메라 일반 모드 — 중앙 자르기(클로즈업) 비활성화, 전체 프레임을 레터박스로 표시
+            camCropMode = false;
             let logicalW = videoW, logicalH = videoH;
             if (camCropMode) {
                 logicalH = videoH;
@@ -357,7 +358,8 @@ function augmentHandsForGun(video, lm, results, now) {
     }
 
     // [시험용 초안, 미배포] 지금 보이는 카메라 영상 + 코 장식 + 관절 표시를 브라우저 안에서 한 장으로 합성(서버 전송 없음)
-    function clearMissionShots() { missionShots.forEach(x => { try { URL.revokeObjectURL(x.url); } catch (e) {} }); missionShots = []; const g = document.getElementById("shots-gallery-box"); if (g) g.style.display = "none"; }
+    // 2026-11-25: 새 게임 시작 때 이전 게임의 QR/안내/동의도 함께 지워 다른 참가자 사진이 노출되지 않게 한다.
+    function clearMissionShots() { missionShots.forEach(x => { try { URL.revokeObjectURL(x.url); } catch (e) {} }); missionShots = []; const g = document.getElementById("shots-gallery-box"); if (g) g.style.display = "none"; const qa = document.getElementById("shots-qr-area"); if (qa) qa.innerHTML = ""; const qn = document.getElementById("shots-qr-note"); if (qn) qn.textContent = ""; const sm = document.getElementById("shots-msg"); if (sm) sm.textContent = ""; const sc = document.getElementById("shots-consent"); if (sc) sc.checked = false; }
     function pushMissionShot(name) {
         try {
             const c = window.captureMissionFrame();
