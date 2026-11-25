@@ -1104,7 +1104,7 @@ html, body {
     </div>
 </dialog>
 
-<script src="./sheets-sync.js?v=20261125-passrec"></script>
+<script src="./sheets-sync.js?v=20261125-1sec"></script>
 <script>
 // 7가지 포즈 목록 및 모드 정의
 const poses = [
@@ -1136,7 +1136,14 @@ let lastVideoTime = -1;
 // 정밀 시간 누적 변수
 let lastFrameTimestamp = null;
 let accumulatedHoldMs = 0;
-const REQUIRED_HOLD_MS = 2000;
+const REQUIRED_HOLD_MS = 1000;
+// 2026-11-25: 모든 포즈 유지 1초, 전신 보너스만 등급 산정 창 유지를 위해 2초
+const BODY_BONUS_HOLD_MS = 2000;
+window.holdMsFor = poseId => (poseId === "body_bonus" ? BODY_BONUS_HOLD_MS : REQUIRED_HOLD_MS);
+// 2026-11-25: 엄지척·브이 인식 완화
+const GESTURE_MIN_SCORE_DEFAULT = 0.6;
+const GESTURE_MIN_SCORE_EASY = 0.45;
+const EASY_GESTURES = new Set(["Thumb_Up", "Victory"]);
 const MAX_DELTA_TOLERANCE_MS = 250;
 const MIN_CONFIDENCE = 0.55;
 
@@ -1330,7 +1337,8 @@ function checkGestureMatches(targetGestureName, gestureResults) {
 
         if (handGestures && handGestures.length > 0 && isValidHandLandmarks(handPoints)) {
             const topGesture = handGestures[0];
-            if (topGesture.categoryName === targetGestureName && topGesture.score >= 0.6) {
+            const minScore = EASY_GESTURES.has(targetGestureName) ? GESTURE_MIN_SCORE_EASY : GESTURE_MIN_SCORE_DEFAULT;
+            if (topGesture.categoryName === targetGestureName && topGesture.score >= minScore) {
                 return true;
             }
         }
@@ -1410,8 +1418,9 @@ function checkPoseMatches(targetId, lm, gestureResults) {
     switch (targetId) {
         case "big_v": {
             const handsAboveHead = lWr.y < nose.y && rWr.y < nose.y;
-            const armsStraight = leftElbowAngle >= 135 && rightElbowAngle >= 135;
-            const handsWide = Math.abs(lWr.x - rWr.x) > shoulderWidth * 1.35;
+            // 2026-11-25: 큰 V 인식 완화 (팔꿈치 120°, 손 간격 1.15배)
+            const armsStraight = leftElbowAngle >= 120 && rightElbowAngle >= 120;
+            const handsWide = Math.abs(lWr.x - rWr.x) > shoulderWidth * 1.15;
             return handsAboveHead && armsStraight && handsWide;
         }
 
@@ -1724,7 +1733,7 @@ window.addEventListener('mediapipe-ready', () => {
     initAIModels();
 });
 </script>
-<script src="./experience.js?v=20261125-passrec"></script>
+<script src="./experience.js?v=20261125-1sec"></script>
 <script src="./festa.js?v=20261125-fe2"></script>
 <script src="./guide.js?v=20261009-37"></script>
 </body>
