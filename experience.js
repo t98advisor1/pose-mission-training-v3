@@ -92,7 +92,7 @@ function augmentHandsForGun(video, lm, results, now) {
     let practiceStartCancel = null;
     let previewTimer = null;
     let successTransitionTimer = null;
-    // 2026-11-25: 포즈 패스(건너뛰기) — 세 번째 포즈부터 버튼 표시, 점수·서버 기록 없이 다음 미션으로 진행
+    // 2026-11-25: 포즈 패스(건너뛰기) — 첫 포즈부터 버튼 표시, 점수 없이 서버에 패스 기록 후 다음 미션으로 진행
     let passedPoses = [];
     let bonusToastTimer = null;
     let isDecorEnabled = true; // 사슴뿔·빨간 공·볼터치 표시 토글 상태 (새 게임에도 유지)
@@ -847,7 +847,8 @@ function augmentHandsForGun(video, lm, results, now) {
                 lastFrameTimestamp = null;
                 if (statusBanner) {
                     statusBanner.className = "vision-hud-banner";
-                    statusBanner.innerText = `[인식중] 2초간 ${currentPose.name} 자세를 유지하세요!`;
+                    const holdSec = (window.holdMsFor ? window.holdMsFor(currentPose.id) : REQUIRED_HOLD_MS) / 1000;
+                    statusBanner.innerText = `[인식중] ${holdSec}초간 ${currentPose.name} 자세를 유지하세요!`;
                 }
 
                 if (!animationFrameId) {
@@ -926,7 +927,8 @@ function augmentHandsForGun(video, lm, results, now) {
     function updatePassPoseBtn() {
         const btn = document.getElementById("pass-pose-btn");
         if (!btn) return;
-        const show = !practiceMode && gameScreen && gameScreen.classList.contains("active") && currentPoseIndex >= 2 && phase !== "result";
+        // 2026-11-25: 첫 포즈부터 패스 가능
+        const show = !practiceMode && gameScreen && gameScreen.classList.contains("active") && phase !== "result";
         btn.hidden = !show;
     }
 
@@ -1032,7 +1034,8 @@ function augmentHandsForGun(video, lm, results, now) {
                             }
                             lastFrameTimestamp = now;
 
-                            const ratio = Math.min(accumulatedHoldMs / REQUIRED_HOLD_MS, 1.0);
+                            const requiredHoldMs = window.holdMsFor ? window.holdMsFor(currentMission.id) : REQUIRED_HOLD_MS;
+                            const ratio = Math.min(accumulatedHoldMs / requiredHoldMs, 1.0);
                             if (progressFill) progressFill.style.width = `${(ratio * 100).toFixed(0)}%`;
                             if (holdText) holdText.innerText = `${(accumulatedHoldMs / 1000).toFixed(1)}s`;
 
@@ -1043,7 +1046,7 @@ function augmentHandsForGun(video, lm, results, now) {
                                     : `[자세맞음] 완벽해요! 유지하세요! (${(accumulatedHoldMs / 1000).toFixed(1)}s)`;
                             }
 
-                            if (accumulatedHoldMs >= REQUIRED_HOLD_MS) {
+                            if (accumulatedHoldMs >= requiredHoldMs) {
                                 phase = "success";
                                 accumulatedHoldMs = 0;
                                 lastFrameTimestamp = null;
@@ -1115,7 +1118,7 @@ function augmentHandsForGun(video, lm, results, now) {
                         } else {
                             window.resetHoldTimer(bodyEvaluation
                                 ? `0/7단계 · 관절 ${bodyEvaluation.count}/22 · 예상 +0점 · ${bodyEvaluation.message}`
-                                : "자세를 맞추고 2초 동안 유지해 주세요!");
+                                : `자세를 맞추고 ${(window.holdMsFor ? window.holdMsFor(currentMission.id) : REQUIRED_HOLD_MS) / 1000}초 동안 유지해 주세요!`);
                         }
                     } else {
                         drawSkeleton(userLandmarks, false);
