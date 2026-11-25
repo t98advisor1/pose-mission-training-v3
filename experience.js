@@ -891,7 +891,6 @@ function augmentHandsForGun(video, lm, results, now) {
     if (passPoseBtn) passPoseBtn.addEventListener("click", () => {
         if (practiceMode) return;
         if (!gameScreen || !gameScreen.classList.contains("active")) return;
-        if (currentPoseIndex < 2) return;
         if (passedPoses[currentPoseIndex] || clearedPoses[currentPoseIndex]) return;
         if (successTransitionTimer) { clearTimeout(successTransitionTimer); successTransitionTimer = null; }
         passedPoses[currentPoseIndex] = true;
