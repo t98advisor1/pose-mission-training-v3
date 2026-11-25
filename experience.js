@@ -898,6 +898,11 @@ function augmentHandsForGun(video, lm, results, now) {
         window.resetHoldTimer();
         closePosePreview();
         const passedName = poses[currentPoseIndex].name;
+        // 2026-11-25: 패스도 서버에 기록 (점수 0 유지, 사용자 승인 12:47/12:48)
+        if (window.PoseSheet && typeof window.PoseSheet.recordPass === "function") {
+            const passedMission = poses[currentPoseIndex];
+            window.PoseSheet.recordPass(passedMission.mission || passedMission.name);
+        }
         if (statusBanner) {
             statusBanner.className = "vision-hud-banner";
             statusBanner.innerText = `⏭️ '${passedName}' 패스 (점수 없이 다음으로)`;
