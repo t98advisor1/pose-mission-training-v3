@@ -359,13 +359,14 @@ function augmentHandsForGun(video, lm, results, now) {
 
     // [시험용 초안, 미배포] 지금 보이는 카메라 영상 + 코 장식 + 관절 표시를 브라우저 안에서 한 장으로 합성(서버 전송 없음)
     // 2026-11-25: 새 게임 시작 때 이전 게임의 QR/안내/동의도 함께 지워 다른 참가자 사진이 노출되지 않게 한다.
-    function clearMissionShots() { missionShots.forEach(x => { try { URL.revokeObjectURL(x.url); } catch (e) {} }); missionShots = []; const g = document.getElementById("shots-gallery-box"); if (g) g.style.display = "none"; const qa = document.getElementById("shots-qr-area"); if (qa) qa.innerHTML = ""; const qn = document.getElementById("shots-qr-note"); if (qn) qn.textContent = ""; const sm = document.getElementById("shots-msg"); if (sm) sm.textContent = ""; const sc = document.getElementById("shots-consent"); if (sc) sc.checked = false; }
+    function clearMissionShots() { missionShots.forEach(x => { try { URL.revokeObjectURL(x.url); } catch (e) {} }); missionShots = []; window.__shotsResetGen = (window.__shotsResetGen || 0) + 1; const g = document.getElementById("shots-gallery-box"); if (g) g.style.display = "none"; const qa = document.getElementById("shots-qr-area"); if (qa) qa.innerHTML = ""; const qn = document.getElementById("shots-qr-note"); if (qn) qn.textContent = ""; const sm = document.getElementById("shots-msg"); if (sm) sm.textContent = ""; const sc = document.getElementById("shots-consent"); if (sc) sc.checked = false; }
     function pushMissionShot(name) {
         try {
             const c = window.captureMissionFrame();
-            const idx = missionShots.length;
-            missionShots.push({ name, url: "", pending: true });
-            c.toBlob(b => { if (b) { missionShots[idx] = { name, url: URL.createObjectURL(b) }; } }, "image/jpeg", 0.9);
+            const arr = missionShots; // 2026-11-25: 세대 고정 — 리셋 뒤 늦게 끝나는 합성은 옛 배열에만 써서 새 게임을 오염시키지 않게 한다
+            const idx = arr.length;
+            arr.push({ name, url: "", pending: true });
+            c.toBlob(b => { if (b) { arr[idx] = { name, url: URL.createObjectURL(b) }; } }, "image/jpeg", 0.9);
         } catch (e) { console.warn("사진 합성 실패", e); }
     }
     window.renderMissionShots = function () {
